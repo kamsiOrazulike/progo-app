@@ -1,0 +1,630 @@
+2025-05-29 12:16:26 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:16:27 | ERROR    | logging:callHandlers:1736 - Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/starlette/routing.py", line 692, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/app/main.py", line 34, in lifespan
+    Base.metadata.create_all(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py", line 5924, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3247, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3237, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3273, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2436, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-05-29 12:16:27 | ERROR    | logging:callHandlers:1736 - Application startup failed. Exiting.
+2025-05-29 12:17:04 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:17:05 | ERROR    | logging:callHandlers:1736 - Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/starlette/routing.py", line 692, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/app/main.py", line 34, in lifespan
+    Base.metadata.create_all(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py", line 5924, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3247, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3237, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3273, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2436, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-05-29 12:17:05 | ERROR    | logging:callHandlers:1736 - Application startup failed. Exiting.
+2025-05-29 12:17:17 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:17:17 | ERROR    | logging:callHandlers:1736 - Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/starlette/routing.py", line 692, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/app/main.py", line 34, in lifespan
+    Base.metadata.create_all(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py", line 5924, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3247, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3237, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3273, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2436, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-05-29 12:17:17 | ERROR    | logging:callHandlers:1736 - Application startup failed. Exiting.
+2025-05-29 12:23:01 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:23:01 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:23:15 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:23:15 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:23:15 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:23:15 | INFO     | logging:callHandlers:1736 - Finished server process [27061]
+2025-05-29 12:23:31 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:23:31 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:23:32 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:23:32 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:23:32 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:23:32 | INFO     | logging:callHandlers:1736 - Finished server process [27361]
+2025-05-29 12:23:35 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:23:36 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:24:20 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52074 - "GET /health HTTP/1.1" 200
+2025-05-29 12:24:21 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52076 - "POST /sensor-data/ HTTP/1.1" 404
+2025-05-29 12:24:21 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52078 - "GET /sensor-data/?limit=5 HTTP/1.1" 404
+2025-05-29 12:24:22 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52080 - "POST /sessions/ HTTP/1.1" 404
+2025-05-29 12:24:22 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52082 - "GET /sessions/?limit=5 HTTP/1.1" 404
+2025-05-29 12:24:23 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52084 - "GET /ml/status HTTP/1.1" 404
+2025-05-29 12:24:23 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52087 - "GET /ml/models HTTP/1.1" 404
+2025-05-29 12:25:47 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:25:47 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:25:47 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:25:47 | INFO     | logging:callHandlers:1736 - Finished server process [27367]
+2025-05-29 12:25:55 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:25:55 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:25:59 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:25:59 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:26:03 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:26:03 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:26:06 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:26:06 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:26:06 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:26:06 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:26:06 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:26:06 | INFO     | logging:callHandlers:1736 - Finished server process [27459]
+2025-05-29 12:26:13 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:26:13 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:26:17 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:26:17 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:27:16 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52143 - "GET /health HTTP/1.1" 200
+2025-05-29 12:27:16 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52145 - "POST /api/v1/sensor-data/ HTTP/1.1" 422
+2025-05-29 12:27:17 | ERROR    | logging:callHandlers:1736 - Error querying sensor data: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:27:17 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52147 - "GET /api/v1/sensor-data/?limit=5 HTTP/1.1" 500
+2025-05-29 12:27:17 | INFO     | logging:callHandlers:1736 - Created exercise session None for device ESP32_TEST_001
+2025-05-29 12:27:17 | ERROR    | logging:callHandlers:1736 - Error creating exercise session: 3 validation errors for ExerciseSessionResponse
+id
+  Input should be a valid integer [type=int_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/int_type
+start_time
+  Input should be a valid datetime [type=datetime_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/datetime_type
+is_labeled
+  Input should be a valid boolean [type=bool_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/bool_type
+2025-05-29 12:27:17 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52149 - "POST /api/v1/sessions/ HTTP/1.1" 500
+2025-05-29 12:27:18 | ERROR    | logging:callHandlers:1736 - Error getting exercise sessions: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:27:18 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52151 - "GET /api/v1/sessions/?limit=5 HTTP/1.1" 500
+2025-05-29 12:27:18 | ERROR    | logging:callHandlers:1736 - Error getting ML status: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:27:18 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52153 - "GET /api/v1/ml/status HTTP/1.1" 500
+2025-05-29 12:27:19 | ERROR    | logging:callHandlers:1736 - Error getting models: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:27:19 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52155 - "GET /api/v1/ml/models HTTP/1.1" 500
+2025-05-29 12:28:56 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:28:56 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:28:57 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:28:57 | INFO     | logging:callHandlers:1736 - Finished server process [27480]
+2025-05-29 12:29:03 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:29:03 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:29:10 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:29:10 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:29:10 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:29:10 | INFO     | logging:callHandlers:1736 - Finished server process [27556]
+2025-05-29 12:29:16 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:29:16 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:29:46 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:29:46 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:29:46 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:29:46 | INFO     | logging:callHandlers:1736 - Finished server process [27570]
+2025-05-29 12:32:30 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:32:30 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:33:11 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:33:11 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:33:16 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52259 - "GET /health HTTP/1.1" 200
+2025-05-29 12:33:16 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52261 - "POST /api/v1/sensor-data/ HTTP/1.1" 200
+2025-05-29 12:33:17 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52263 - "GET /api/v1/sensor-data/?limit=5 HTTP/1.1" 200
+2025-05-29 12:33:17 | INFO     | logging:callHandlers:1736 - Created exercise session 1 for device ESP32_TEST_001
+2025-05-29 12:33:17 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52266 - "POST /api/v1/sessions/ HTTP/1.1" 200
+2025-05-29 12:33:18 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52268 - "GET /api/v1/sessions/?limit=5 HTTP/1.1" 200
+2025-05-29 12:33:19 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52271 - "GET /api/v1/ml/status HTTP/1.1" 200
+2025-05-29 12:33:19 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52273 - "GET /api/v1/ml/models HTTP/1.1" 200
+2025-05-29 12:33:30 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:33:30 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:33:30 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:33:30 | INFO     | logging:callHandlers:1736 - Finished server process [27753]
+2025-05-29 12:33:36 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:33:36 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:33:37 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:33:37 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:33:37 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:33:37 | INFO     | logging:callHandlers:1736 - Finished server process [27796]
+2025-05-29 12:33:41 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:33:41 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:33:41 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:34:05 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52289 - "GET /health HTTP/1.1" 200
+2025-05-29 12:34:42 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:34:42 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:34:42 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:34:42 | INFO     | logging:callHandlers:1736 - Finished server process [27808]
+2025-05-29 12:34:47 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:34:47 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:34:47 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:35:16 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52315 - "GET /health HTTP/1.1" 200
+2025-05-29 12:35:17 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52317 - "POST /api/v1/sensor-data/ HTTP/1.1" 200
+2025-05-29 12:35:17 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52319 - "GET /api/v1/sensor-data/?limit=5 HTTP/1.1" 200
+2025-05-29 12:35:18 | INFO     | logging:callHandlers:1736 - Created exercise session 2 for device ESP32_TEST_001
+2025-05-29 12:35:18 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52321 - "POST /api/v1/sessions/ HTTP/1.1" 200
+2025-05-29 12:35:18 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52323 - "GET /api/v1/sessions/?limit=5 HTTP/1.1" 200
+2025-05-29 12:35:19 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52325 - "GET /api/v1/ml/status HTTP/1.1" 200
+2025-05-29 12:35:20 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52327 - "GET /api/v1/ml/models HTTP/1.1" 200
+2025-05-29 12:35:20 | INFO     | logging:callHandlers:1736 - Started background training for model: test_classifier
+2025-05-29 12:35:20 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52329 - "POST /api/v1/ml/train HTTP/1.1" 200
+2025-05-29 12:35:20 | INFO     | logging:callHandlers:1736 - Preparing training data from labeled sessions
+2025-05-29 12:35:20 | ERROR    | logging:callHandlers:1736 - Model training failed: No labeled exercise data found
+2025-05-29 12:35:20 | ERROR    | logging:callHandlers:1736 - Background training failed: No labeled exercise data found
+2025-05-29 12:35:21 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52331 - "POST /api/v1/ml/predict HTTP/1.1" 422
+2025-05-29 12:35:47 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:35:47 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:35:47 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:35:47 | INFO     | logging:callHandlers:1736 - Finished server process [27838]
+2025-05-29 12:35:54 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:35:54 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:35:54 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:36:03 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52351 - "GET /health HTTP/1.1" 200
+2025-05-29 12:36:04 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52353 - "POST /api/v1/sensor-data/ HTTP/1.1" 200
+2025-05-29 12:36:04 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52355 - "GET /api/v1/sensor-data/?limit=5 HTTP/1.1" 200
+2025-05-29 12:36:05 | INFO     | logging:callHandlers:1736 - Created exercise session 3 for device ESP32_TEST_001
+2025-05-29 12:36:05 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52357 - "POST /api/v1/sessions/ HTTP/1.1" 200
+2025-05-29 12:36:06 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52359 - "GET /api/v1/sessions/?limit=5 HTTP/1.1" 200
+2025-05-29 12:36:06 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52361 - "GET /api/v1/ml/status HTTP/1.1" 200
+2025-05-29 12:36:07 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52363 - "GET /api/v1/ml/models HTTP/1.1" 200
+2025-05-29 12:36:07 | INFO     | logging:callHandlers:1736 - Started background training for model: test_classifier
+2025-05-29 12:36:07 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52365 - "POST /api/v1/ml/train HTTP/1.1" 200
+2025-05-29 12:36:07 | INFO     | logging:callHandlers:1736 - Preparing training data from labeled sessions
+2025-05-29 12:36:07 | ERROR    | logging:callHandlers:1736 - Model training failed: No labeled exercise data found
+2025-05-29 12:36:07 | ERROR    | logging:callHandlers:1736 - Background training failed: No labeled exercise data found
+2025-05-29 12:36:08 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:36:08 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52367 - "POST /api/v1/ml/predict HTTP/1.1" 503
+2025-05-29 12:36:15 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:36:15 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:36:15 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:36:15 | INFO     | logging:callHandlers:1736 - Finished server process [27883]
+2025-05-29 12:36:20 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:36:21 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:36:21 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-05-29 12:36:37 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52395 - "GET /health HTTP/1.1" 200
+2025-05-29 12:36:37 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52397 - "POST /api/v1/sensor-data/ HTTP/1.1" 200
+2025-05-29 12:36:38 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52399 - "GET /api/v1/sensor-data/?limit=5 HTTP/1.1" 200
+2025-05-29 12:36:38 | INFO     | logging:callHandlers:1736 - Created exercise session 4 for device ESP32_TEST_001
+2025-05-29 12:36:38 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52401 - "POST /api/v1/sessions/ HTTP/1.1" 200
+2025-05-29 12:36:39 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52403 - "GET /api/v1/sessions/?limit=5 HTTP/1.1" 200
+2025-05-29 12:36:39 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52405 - "GET /api/v1/ml/status HTTP/1.1" 200
+2025-05-29 12:36:40 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52408 - "GET /api/v1/ml/models HTTP/1.1" 200
+2025-05-29 12:36:40 | INFO     | logging:callHandlers:1736 - Started background training for model: test_classifier
+2025-05-29 12:36:40 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52410 - "POST /api/v1/ml/train HTTP/1.1" 200
+2025-05-29 12:36:40 | INFO     | logging:callHandlers:1736 - Preparing training data from labeled sessions
+2025-05-29 12:36:40 | ERROR    | logging:callHandlers:1736 - Model training failed: No labeled exercise data found
+2025-05-29 12:36:40 | ERROR    | logging:callHandlers:1736 - Background training failed: No labeled exercise data found
+2025-05-29 12:36:41 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:36:41 | INFO     | logging:callHandlers:1736 - 127.0.0.1:52412 - "POST /api/v1/ml/predict HTTP/1.1" 503
+2025-05-29 12:43:02 | INFO     | logging:callHandlers:1736 - Shutting down
+2025-05-29 12:43:02 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
+2025-05-29 12:43:02 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
+2025-05-29 12:43:02 | INFO     | logging:callHandlers:1736 - Finished server process [27922]
+2025-05-29 12:43:11 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-05-29 12:43:11 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:43:11 | INFO     | logging:callHandlers:1736 - Application startup complete.

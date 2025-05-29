@@ -1,0 +1,477 @@
+2025-05-29 12:16:27 | ERROR    | logging:callHandlers:1736 - Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/starlette/routing.py", line 692, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/app/main.py", line 34, in lifespan
+    Base.metadata.create_all(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py", line 5924, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3247, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3237, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3273, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2436, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-05-29 12:16:27 | ERROR    | logging:callHandlers:1736 - Application startup failed. Exiting.
+2025-05-29 12:17:05 | ERROR    | logging:callHandlers:1736 - Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/starlette/routing.py", line 692, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/app/main.py", line 34, in lifespan
+    Base.metadata.create_all(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py", line 5924, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3247, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3237, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3273, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2436, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-05-29 12:17:05 | ERROR    | logging:callHandlers:1736 - Application startup failed. Exiting.
+2025-05-29 12:17:17 | ERROR    | logging:callHandlers:1736 - Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/starlette/routing.py", line 692, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/fastapi/routing.py", line 133, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ~~~~~~~~~~~~~~~~^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/app/main.py", line 34, in lifespan
+    Base.metadata.create_all(bind=engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py", line 5924, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3247, in _run_ddl_visitor
+    with self.begin() as conn:
+         ~~~~~~~~~~^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3237, in begin
+    with self.connect() as conn:
+         ~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3273, in connect
+    return self._connection_cls(self)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 147, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        err, dialect, engine
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2436, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 145, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 3297, in raw_connection
+    return self.pool.connect()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/util/langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 625, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/kams/Documents/workspace/progo-app/Progo-BE/venv/lib/python3.13/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  role "postgres" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-05-29 12:17:17 | ERROR    | logging:callHandlers:1736 - Application startup failed. Exiting.
+2025-05-29 12:27:17 | ERROR    | logging:callHandlers:1736 - Error querying sensor data: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:27:17 | ERROR    | logging:callHandlers:1736 - Error creating exercise session: 3 validation errors for ExerciseSessionResponse
+id
+  Input should be a valid integer [type=int_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/int_type
+start_time
+  Input should be a valid datetime [type=datetime_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/datetime_type
+is_labeled
+  Input should be a valid boolean [type=bool_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/bool_type
+2025-05-29 12:27:18 | ERROR    | logging:callHandlers:1736 - Error getting exercise sessions: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:27:18 | ERROR    | logging:callHandlers:1736 - Error getting ML status: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:27:19 | ERROR    | logging:callHandlers:1736 - Error getting models: 'AsyncSession' object has no attribute 'query'
+2025-05-29 12:33:41 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:34:47 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:35:20 | ERROR    | logging:callHandlers:1736 - Model training failed: No labeled exercise data found
+2025-05-29 12:35:20 | ERROR    | logging:callHandlers:1736 - Background training failed: No labeled exercise data found
+2025-05-29 12:35:54 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:36:07 | ERROR    | logging:callHandlers:1736 - Model training failed: No labeled exercise data found
+2025-05-29 12:36:07 | ERROR    | logging:callHandlers:1736 - Background training failed: No labeled exercise data found
+2025-05-29 12:36:08 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:36:21 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:36:40 | ERROR    | logging:callHandlers:1736 - Model training failed: No labeled exercise data found
+2025-05-29 12:36:40 | ERROR    | logging:callHandlers:1736 - Background training failed: No labeled exercise data found
+2025-05-29 12:36:41 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-05-29 12:43:11 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier

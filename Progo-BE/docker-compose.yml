@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: progo_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/progo_db
+      - DATABASE_URL_ASYNC=postgresql+asyncpg://postgres:password@postgres:5432/progo_db
+      - DEBUG=True
+      - LOG_LEVEL=INFO
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+      - ./app/ml/models:/app/app/ml/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        python -c 'import time; import psycopg2; 
+        while True:
+          try: 
+            psycopg2.connect(\"postgresql://postgres:password@postgres:5432/progo_db\"); 
+            break
+          except: 
+            time.sleep(1)' &&
+        echo 'Database ready!' &&
+        alembic upgrade head &&
+        echo 'Migrations complete!' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+volumes:
+  postgres_data:
+  redis_data:
