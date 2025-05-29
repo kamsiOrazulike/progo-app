@@ -1,0 +1,48 @@
+services:
+  # FastAPI Web Service
+  - type: web
+    name: progo-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: DEBUG
+        value: false
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SECRET_KEY
+        generateValue: true
+      - key: API_V1_STR
+        value: /api/v1
+      - key: PROJECT_NAME
+        value: Progo ML Backend
+      - key: FEATURE_WINDOW_SIZE
+        value: 200
+      - key: WINDOW_OVERLAP
+        value: 0.5
+      - key: MIN_TRAINING_SAMPLES
+        value: 100
+      - key: MODEL_UPDATE_INTERVAL
+        value: 3600
+      - key: INFERENCE_WINDOW_SIZE
+        value: 100
+      - key: INFERENCE_OVERLAP
+        value: 0.5
+
+  # PostgreSQL Database Service
+  - type: pserv
+    name: progo-database
+    env: docker
+    plan: free
+    disk:
+      name: progo-db-disk
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1

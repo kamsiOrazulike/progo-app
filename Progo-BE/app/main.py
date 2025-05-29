@@ -60,12 +60,18 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS middleware
+# CORS middleware - Production ready configuration
+cors_origins = ["*"]  # Allow all origins for IoT devices
+if settings.environment == "production":
+    # In production, you might want to restrict origins
+    # cors_origins = ["https://your-frontend-domain.com"]
+    pass
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -103,25 +109,42 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     """
-    Detailed health check endpoint.
+    Enhanced health check endpoint for Render monitoring.
     """
-    # Check database connection using sync session
+    health_data = {
+        "status": "healthy",
+        "environment": settings.environment,
+        "version": "1.0.0",
+        "timestamp": None,
+        "checks": {}
+    }
+    
+    # Check database connection
     try:
         from app.database import get_sync_db
         from sqlalchemy import text
         db = next(get_sync_db())
         db.execute(text("SELECT 1"))
-        db_status = "healthy"
+        health_data["checks"]["database"] = "healthy"
         db.close()
     except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
+        health_data["checks"]["database"] = f"unhealthy: {str(e)}"
+        health_data["status"] = "degraded"
     
     # Check ML model status
     ml_status = "loaded" if inference_engine.model_package else "not_loaded"
+    health_data["checks"]["ml_model"] = ml_status
     
-    # Check if directories exist
-    logs_exist = os.path.exists("logs")
-    models_exist = os.path.exists("app/ml/models")
+    # Check directories
+    health_data["checks"]["logs_dir"] = "exists" if os.path.exists("logs") else "missing"
+    health_data["checks"]["models_dir"] = "exists" if os.path.exists("app/ml/models") else "missing"
+    
+    # Add render-specific information
+    if settings.is_render_environment():
+        health_data["platform"] = "render"
+        health_data["checks"]["render_env"] = "detected"
+    
+    return health_data
     
     return {
         "status": "healthy",
