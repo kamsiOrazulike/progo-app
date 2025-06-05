@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ML Training Timer</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #1a1a1a;
+        color: white;
+      }
+      .container {
+        background: #2d2d2d;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 10px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #555;
+        cursor: not-allowed;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: #333;
+        border-radius: 5px;
+        font-family: monospace;
+      }
+      .timer {
+        font-size: 24px;
+        color: #00ff00;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🕒 ML Training Timer Test</h1>
+      <p>This will test how long your ML model training takes</p>
+
+      <div class="timer" id="timer">00:00</div>
+
+      <button id="trainBtn" onclick="testTraining()">
+        🚀 Test Training Duration
+      </button>
+
+      <div id="result" class="result" style="display: none"></div>
+    </div>
+
+    <script>
+      let startTime;
+      let timerInterval;
+
+      function updateTimer() {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = Math.floor(elapsed % 60);
+        document.getElementById("timer").textContent = `${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      }
+
+      async function testTraining() {
+        const trainBtn = document.getElementById("trainBtn");
+        const result = document.getElementById("result");
+        const timer = document.getElementById("timer");
+
+        // Reset UI
+        trainBtn.disabled = true;
+        trainBtn.textContent = "⏳ Training in progress...";
+        result.style.display = "none";
+        timer.textContent = "00:00";
+
+        // Start timer
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 100);
+
+        try {
+          // Make API call to your training endpoint
+          const response = await fetch(
+            "https://render-progo.onrender.com/api/v1/ml/train/",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                device_id: "CC:BA:97:01:3D:18",
+                model_name: "exercise_classifier",
+                include_exercises: ["bicep_curl", "squat", "resting"],
+              }),
+            }
+          );
+
+          const endTime = Date.now();
+          const duration = (endTime - startTime) / 1000;
+
+          // Stop timer
+          clearInterval(timerInterval);
+
+          // Show results
+          const resultDiv = document.getElementById("result");
+          if (response.ok) {
+            const data = await response.json();
+            resultDiv.innerHTML = `
+                        <h3>✅ Training Complete!</h3>
+                        <p><strong>Duration:</strong> ${duration.toFixed(
+                          2
+                        )} seconds</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Response:</strong> ${JSON.stringify(
+                          data,
+                          null,
+                          2
+                        )}</p>
+                    `;
+            resultDiv.style.color = "#00ff00";
+          } else {
+            resultDiv.innerHTML = `
+                        <h3>❌ Training Failed</h3>
+                        <p><strong>Duration:</strong> ${duration.toFixed(
+                          2
+                        )} seconds</p>
+                        <p><strong>Error:</strong> ${response.status} ${
+              response.statusText
+            }</p>
+                        <p><strong>Response:</strong> ${await response.text()}</p>
+                    `;
+            resultDiv.style.color = "#ff0000";
+          }
+          resultDiv.style.display = "block";
+        } catch (error) {
+          clearInterval(timerInterval);
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = `
+                    <h3>❌ Network Error</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+          resultDiv.style.color = "#ff0000";
+          resultDiv.style.display = "block";
+        }
+
+        // Reset button
+        trainBtn.disabled = false;
+        trainBtn.textContent = "🚀 Test Training Duration";
+      }
+    </script>
+  </body>
+</html>

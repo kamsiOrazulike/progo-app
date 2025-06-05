@@ -475,3 +475,5 @@ is_labeled
 2025-05-29 12:36:40 | ERROR    | logging:callHandlers:1736 - Background training failed: No labeled exercise data found
 2025-05-29 12:36:41 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
 2025-05-29 12:43:11 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-06-04 13:31:11 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-06-04 13:54:32 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier

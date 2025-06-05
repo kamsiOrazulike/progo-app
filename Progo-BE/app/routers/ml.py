@@ -137,16 +137,21 @@ async def predict_exercise(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/predict/realtime/{device_id}", response_model=ModelPredictionResponse)
-async def predict_exercise_realtime(
+@router.get("/predict/realtime/{device_id}")
+async def get_realtime_prediction(
     device_id: str,
+    include_features: bool = False,
     save_prediction: bool = True,
     db: Session = Depends(get_sync_db)
 ):
-    """
-    Predict exercise type from real-time sensor buffer for a device.
-    """
+    """Get real-time prediction for a device using MAC address."""
     try:
+        # Validate MAC address format (optional warning)
+        import re
+        mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+        if not re.match(mac_pattern, device_id):
+            logger.warning(f"Device ID {device_id} doesn't match MAC address format")
+        
         # Check if model is loaded
         if not inference_engine.model_package:
             # Try to load the active model
@@ -160,17 +165,17 @@ async def predict_exercise_realtime(
         buffer_status = inference_engine.get_buffer_status(device_id)
         if not buffer_status['ready_for_prediction']:
             raise HTTPException(
-                status_code=400,
-                detail=f"Insufficient data for prediction. Need {buffer_status['required_samples']} samples, have {buffer_status['buffer_size']}"
+                status_code=503,
+                detail=f"No prediction available for device {device_id}. Need more sensor data. Currently have {buffer_status['buffer_size']} samples, need {buffer_status['required_samples']}"
             )
         
-        # Make prediction
-        prediction = inference_engine.predict_exercise(device_id, return_features=True)
+        # Make prediction (this already works with any device_id format)
+        prediction = inference_engine.predict_exercise(device_id, return_features=include_features)
         
         if not prediction:
             raise HTTPException(
-                status_code=400, 
-                detail="Unable to make prediction from buffer data"
+                status_code=503, 
+                detail=f"No prediction available for device {device_id}. Need more sensor data."
             )
         
         # Save prediction to database if requested
@@ -178,7 +183,7 @@ async def predict_exercise_realtime(
             await inference_engine.save_prediction(
                 db=db,
                 prediction=prediction,
-                features=prediction.features_used
+                features=prediction.features_used if include_features else None
             )
         
         logger.info(f"Real-time prediction for {device_id}: {prediction.predicted_exercise} (confidence: {prediction.confidence_score:.3f})")

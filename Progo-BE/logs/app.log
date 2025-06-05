@@ -632,3 +632,17 @@ is_labeled
 2025-05-29 14:47:23 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
 2025-05-29 14:47:23 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
 2025-05-29 14:47:23 | INFO     | logging:callHandlers:1736 - Finished server process [28073]
+2025-06-04 13:31:11 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-06-04 13:31:11 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-06-04 13:31:11 | INFO     | logging:callHandlers:1736 - Application startup complete.
+2025-06-04 13:32:20 | INFO     | logging:callHandlers:1736 - 127.0.0.1:63055 - "GET /health HTTP/1.1" 200
+2025-06-04 13:33:12 | INFO     | logging:callHandlers:1736 - Found 1 known devices
+2025-06-04 13:33:12 | INFO     | logging:callHandlers:1736 - 127.0.0.1:63070 - "GET /api/v1/sensor-data/devices HTTP/1.1" 200
+2025-06-04 13:33:44 | INFO     | logging:callHandlers:1736 - 127.0.0.1:63078 - "POST /api/v1/sensor-data/ HTTP/1.1" 200
+2025-06-04 13:52:55 | INFO     | logging:callHandlers:1736 - Found 2 known devices
+2025-06-04 13:52:55 | INFO     | logging:callHandlers:1736 - 127.0.0.1:63168 - "GET /api/v1/sensor-data/devices HTTP/1.1" 200
+2025-06-04 13:53:59 | INFO     | logging:callHandlers:1736 - 127.0.0.1:63180 - "GET /api/v1/sensor-data/devices/AA%3ABB%3ACC%3ADD%3AEE%3AFF/status HTTP/1.1" 200
+2025-06-04 13:54:32 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-06-04 13:54:32 | INFO     | logging:callHandlers:1736 - 127.0.0.1:63189 - "GET /api/v1/ml/predict/realtime/AA%3ABB%3ACC%3ADD%3AEE%3AFF?include_features=true HTTP/1.1" 503
+2025-06-04 13:54:41 | INFO     | logging:callHandlers:1736 - Registered new device: AA:BB:CC:DD:EE:FF
+2025-06-04 13:54:41 | INFO     | logging:callHandlers:1736 - 127.0.0.1:63192 - "POST /api/v1/sensor-data/devices/register HTTP/1.1" 200

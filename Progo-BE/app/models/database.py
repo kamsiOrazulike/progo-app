@@ -119,3 +119,16 @@ class MLModel(Base):
     
     # File path to saved model
     model_file_path = Column(String, nullable=True)
+
+
+class DeviceInfo(Base):
+    """Optional device registration and metadata tracking"""
+    __tablename__ = "device_info"
+    
+    device_id = Column(String, primary_key=True)  # MAC address
+    device_name = Column(String, nullable=True)   # User-friendly name
+    device_type = Column(String, default="ESP32")
+    registered_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_seen = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, default=True)
+    notes = Column(Text, nullable=True)

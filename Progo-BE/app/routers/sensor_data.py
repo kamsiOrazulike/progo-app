@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_
-from typing import List, Optional
+from sqlalchemy import desc, and_, func
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
+import re
 
 from app.database import get_sync_db
 from app.models.schemas import (
     SensorDataInput, SensorDataResponse, SensorDataQuery, 
     APIResponse, PaginatedResponse
 )
-from app.models.database import SensorReading, ExerciseSession
+from app.models.database import SensorReading, ExerciseSession, DeviceInfo
 from app.ml.inference import inference_engine
 import logging
 
@@ -321,4 +322,173 @@ async def delete_sensor_data(
         
     except Exception as e:
         logger.error(f"Error deleting sensor data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/devices", response_model=List[Dict[str, Any]])
+async def get_known_devices(db: Session = Depends(get_sync_db)):
+    """Get list of all devices that have sent data."""
+    try:
+        result = db.query(
+            SensorReading.device_id,
+            func.count(SensorReading.id).label('reading_count'),
+            func.max(SensorReading.timestamp).label('last_seen'),
+            func.min(SensorReading.timestamp).label('first_seen')
+        ).group_by(SensorReading.device_id).all()
+        
+        devices = []
+        for device in result:
+            # Check if device_id matches MAC address format (AA:BB:CC:DD:EE:FF)
+            mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+            is_esp32 = bool(re.match(mac_pattern, device.device_id))
+            
+            devices.append({
+                "device_id": device.device_id,
+                "reading_count": device.reading_count,
+                "last_seen": device.last_seen,
+                "first_seen": device.first_seen,
+                "is_esp32": is_esp32,
+                "device_type": "ESP32" if is_esp32 else "Unknown"
+            })
+        
+        logger.info(f"Found {len(devices)} known devices")
+        return devices
+        
+    except Exception as e:
+        logger.error(f"Error getting known devices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/devices/{device_id}/status")
+async def get_device_status(
+    device_id: str, 
+    db: Session = Depends(get_sync_db)
+):
+    """Get current status and recent activity for a device."""
+    try:
+        # Recent readings (last 5 minutes)
+        recent_cutoff = datetime.now() - timedelta(minutes=5)
+        recent_readings = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id,
+            SensorReading.timestamp >= recent_cutoff
+        ).count()
+        
+        # Last reading
+        last_reading = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id
+        ).order_by(SensorReading.timestamp.desc()).first()
+        
+        # Total readings
+        total_readings = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id
+        ).count()
+        
+        # ML model buffer status
+        buffer_status = inference_engine.get_buffer_status(device_id)
+        
+        # Check if device_id matches MAC address format
+        mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+        is_esp32 = bool(re.match(mac_pattern, device_id))
+        
+        return {
+            "device_id": device_id,
+            "device_type": "ESP32" if is_esp32 else "Unknown",
+            "is_online": recent_readings > 0,
+            "recent_readings_5min": recent_readings,
+            "total_readings": total_readings,
+            "last_reading": last_reading.timestamp if last_reading else None,
+            "last_reading_data": {
+                "accel_x": last_reading.accel_x,
+                "accel_y": last_reading.accel_y,
+                "accel_z": last_reading.accel_z,
+                "temperature": last_reading.temperature
+            } if last_reading else None,
+            "ml_buffer_status": buffer_status,
+            "ready_for_prediction": buffer_status.get('ready_for_prediction', False)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting device status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/devices/register")
+async def register_device(
+    device_info: Dict[str, str],
+    db: Session = Depends(get_sync_db)
+):
+    """Register a new device with optional metadata."""
+    try:
+        device_id = device_info.get("device_id")
+        if not device_id:
+            raise HTTPException(status_code=400, detail="device_id is required")
+        
+        # Check if device already exists
+        existing_device = db.query(DeviceInfo).filter(DeviceInfo.device_id == device_id).first()
+        if existing_device:
+            raise HTTPException(status_code=400, detail="Device already registered")
+        
+        # Create device record
+        device = DeviceInfo(
+            device_id=device_id,
+            device_name=device_info.get("device_name", f"ESP32-{device_id[-5:]}"),
+            device_type=device_info.get("device_type", "ESP32"),
+            notes=device_info.get("notes")
+        )
+        
+        db.add(device)
+        db.commit()
+        db.refresh(device)
+        
+        logger.info(f"Registered new device: {device_id}")
+        
+        return APIResponse(
+            success=True,
+            message=f"Device {device.device_id} registered successfully",
+            data={
+                "device_id": device.device_id,
+                "device_name": device.device_name,
+                "device_type": device.device_type,
+                "registered_at": device.registered_at
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error registering device: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/devices/registered")
+async def get_registered_devices(db: Session = Depends(get_sync_db)):
+    """Get list of all registered devices."""
+    try:
+        devices = db.query(DeviceInfo).filter(DeviceInfo.is_active == True).all()
+        
+        result = []
+        for device in devices:
+            # Get last sensor reading to update last_seen
+            last_reading = db.query(SensorReading).filter(
+                SensorReading.device_id == device.device_id
+            ).order_by(SensorReading.timestamp.desc()).first()
+            
+            if last_reading and last_reading.timestamp != device.last_seen:
+                device.last_seen = last_reading.timestamp
+                db.commit()
+            
+            result.append({
+                "device_id": device.device_id,
+                "device_name": device.device_name,
+                "device_type": device.device_type,
+                "registered_at": device.registered_at,
+                "last_seen": device.last_seen,
+                "is_active": device.is_active,
+                "notes": device.notes
+            })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting registered devices: {e}")
         raise HTTPException(status_code=500, detail=str(e))
