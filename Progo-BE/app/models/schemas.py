@@ -10,6 +10,20 @@ class ExerciseType(str, Enum):
     UNKNOWN = "unknown"
 
 
+class WorkoutStatus(str, Enum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class RepEventType(str, Enum):
+    REP_COMPLETED = "rep_completed"
+    SET_COMPLETED = "set_completed"
+    FORM_WARNING = "form_warning"
+    POOR_FORM = "poor_form"
+
+
 # Sensor Data Models
 class AccelerometerData(BaseModel):
     x: float
@@ -193,3 +207,164 @@ class SensorDataQuery(BaseModel):
     session_id: Optional[int] = None
     limit: int = Field(1000, le=10000)
     offset: int = 0
+
+
+# Workout Session Models
+class WorkoutSessionCreate(BaseModel):
+    device_id: str
+    exercise_type: ExerciseType
+    target_reps: Optional[int] = None
+    target_sets: Optional[int] = None
+
+
+class WorkoutSessionUpdate(BaseModel):
+    status: Optional[WorkoutStatus] = None
+    current_set: Optional[int] = None
+    current_reps: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class WorkoutSessionResponse(BaseModel):
+    id: int
+    device_id: str
+    exercise_type: str
+    status: str
+    started_at: datetime
+    completed_at: Optional[datetime]
+    current_set: int
+    current_reps: int
+    target_reps_per_set: Optional[int]
+    target_sets: Optional[int]
+    notes: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+# Rep Pattern Models
+class RepPatternCreate(BaseModel):
+    device_id: str
+    exercise_type: ExerciseType
+    avg_duration_ms: int
+    min_duration_ms: int
+    max_duration_ms: int
+    rep_count: int
+
+
+class RepPatternResponse(BaseModel):
+    id: int
+    device_id: str
+    exercise_type: str
+    avg_duration_ms: int
+    min_duration_ms: int
+    max_duration_ms: int
+    rep_count: int
+    last_updated: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Rep Event Models
+class RepEventCreate(BaseModel):
+    workout_session_id: int
+    event_type: RepEventType
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    duration_ms: Optional[int] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class RepEventResponse(BaseModel):
+    id: int
+    workout_session_id: int
+    event_type: str
+    confidence: float
+    duration_ms: Optional[int]
+    timestamp: datetime
+    metadata: Optional[Dict[str, Any]]
+
+    class Config:
+        from_attributes = True
+
+
+# Real-time Rep Detection Models
+class RepDetectionRequest(BaseModel):
+    device_id: str
+    use_personalized_timing: bool = True
+    confidence_threshold: float = Field(0.6, ge=0.0, le=1.0)
+
+
+class RepDetectionResponse(BaseModel):
+    device_id: str
+    rep_detected: bool
+    confidence: float
+    event_type: RepEventType
+    duration_ms: Optional[int]
+    metadata: Dict[str, Any]
+    timestamp: datetime
+
+
+class RepValidationRequest(BaseModel):
+    device_id: str
+    rep_data: List[SensorDataInput]
+    expected_exercise: ExerciseType
+
+
+class RepValidationResponse(BaseModel):
+    is_valid_rep: bool
+    confidence: float
+    detected_exercise: ExerciseType
+    form_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    suggestions: Optional[List[str]] = None
+
+
+# WebSocket Message Models
+class WebSocketMessage(BaseModel):
+    type: str
+    device_id: str
+    data: Dict[str, Any]
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class RepCompletedMessage(WebSocketMessage):
+    type: str = "rep_completed"
+    
+
+class SetCompletedMessage(WebSocketMessage):
+    type: str = "set_completed"
+
+
+class WorkoutCompletedMessage(WebSocketMessage):
+    type: str = "workout_completed"
+
+
+class FormWarningMessage(WebSocketMessage):
+    type: str = "form_warning"
+
+
+# Training Data Collection Models
+class RepTrainingDataCreate(BaseModel):
+    device_id: str
+    exercise_type: ExerciseType
+    rep_number: int
+    set_number: int
+    duration_ms: int
+    quality_score: float = Field(..., ge=0.0, le=1.0)
+    sensor_data_ids: List[int]
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class RepTrainingDataResponse(BaseModel):
+    id: int
+    device_id: str
+    exercise_type: str
+    rep_number: int
+    set_number: int
+    duration_ms: int
+    quality_score: float
+    sensor_data_ids: List[int]
+    metadata: Optional[Dict[str, Any]]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

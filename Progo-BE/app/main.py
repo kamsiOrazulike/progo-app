@@ -8,7 +8,10 @@ from pathlib import Path
 from app.config import settings
 from app.database import engine, get_db
 from app.models.database import Base
-from app.routers import sensor_data_router, sessions_router, ml_router
+from app.routers import (
+    sensor_data_router, sessions_router, ml_router,
+    workouts_router, reps_router, websocket_router
+)
 from app.utils.logging import setup_logging
 from app.ml.inference import inference_engine
 
@@ -161,6 +164,9 @@ async def health_check():
 app.include_router(sensor_data_router, prefix=settings.api_v1_str)
 app.include_router(sessions_router, prefix=settings.api_v1_str)
 app.include_router(ml_router, prefix=settings.api_v1_str)
+app.include_router(workouts_router, prefix=settings.api_v1_str)
+app.include_router(reps_router, prefix=settings.api_v1_str)
+app.include_router(websocket_router)  # WebSocket doesn't need API prefix
 
 
 # Additional utility endpoints

@@ -10,13 +10,17 @@ from app.models.schemas import (
     SensorDataInput, SensorDataResponse, SensorDataQuery, 
     APIResponse, PaginatedResponse
 )
-from app.models.database import SensorReading, ExerciseSession, DeviceInfo
+from app.models.database import SensorReading, ExerciseSession, DeviceInfo, WorkoutSession
 from app.ml.inference import inference_engine
+from app.ml.workout_manager import WorkoutManager
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sensor-data", tags=["Sensor Data"])
+
+# Global workout manager instance
+workout_manager = WorkoutManager()
 
 
 @router.post("/", response_model=APIResponse)
@@ -62,6 +66,24 @@ async def receive_sensor_data(
         
         # Add to real-time inference buffer
         inference_engine.add_sensor_data(sensor_data.device_id, sensor_data)
+        
+        # Check for active workout and process rep detection
+        active_workout = (
+            db.query(WorkoutSession)
+            .filter(
+                WorkoutSession.device_id == sensor_data.device_id,
+                WorkoutSession.status == "active"
+            )
+            .first()
+        )
+        
+        if active_workout:
+            # Process sensor data for rep detection
+            await workout_manager.process_sensor_data(
+                sensor_data.device_id, 
+                sensor_data,
+                active_workout.id
+            )
         
         logger.debug(f"Received sensor data from {sensor_data.device_id}")
         

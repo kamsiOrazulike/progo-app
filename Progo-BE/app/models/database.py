@@ -1,8 +1,23 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, JSON, Enum, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 import uuid
+import enum
+
+
+class WorkoutStatus(enum.Enum):
+    active = "active"
+    paused = "paused"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
+class RepEventType(enum.Enum):
+    rep_completed = "rep_completed"
+    set_completed = "set_completed"
+    rest_started = "rest_started"
+    form_warning = "form_warning"
 
 
 class SensorReading(Base):
@@ -132,3 +147,81 @@ class DeviceInfo(Base):
     last_seen = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
+
+
+class WorkoutSession(Base):
+    """Active workout sessions for real-time rep tracking"""
+    __tablename__ = "workout_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String, nullable=False, index=True)
+    exercise_type = Column(String, nullable=False)  # 'squat', 'bicep_curl', etc.
+    
+    # Workout plan
+    target_sets = Column(Integer, default=3)
+    target_reps_per_set = Column(Integer, default=10)
+    
+    # Current progress
+    current_set = Column(Integer, default=1)
+    current_reps = Column(Integer, default=0)
+    
+    # Status and timing
+    status = Column(Enum(WorkoutStatus), default=WorkoutStatus.active)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Optional metadata
+    notes = Column(Text, nullable=True)
+    
+    # Relationships
+    rep_events = relationship("RepEvent", back_populates="workout_session")
+
+
+class RepPattern(Base):
+    """Learned rep patterns for personalized detection"""
+    __tablename__ = "rep_patterns"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String, nullable=False, index=True)
+    exercise_type = Column(String, nullable=False)
+    
+    # Timing patterns (in seconds)
+    avg_rep_duration = Column(Float, nullable=False)
+    min_rep_duration = Column(Float, nullable=False)
+    max_rep_duration = Column(Float, nullable=False)
+    avg_rest_between_reps = Column(Float, nullable=False)
+    
+    # Motion patterns (JSON stored signatures)
+    motion_signature = Column(JSON, nullable=True)
+    
+    # Training metadata
+    training_session_count = Column(Integer, default=1)
+    last_updated = Column(DateTime(timezone=True), server_default=func.now())
+    confidence_score = Column(Float, default=0.5)  # How reliable this pattern is
+
+
+class RepEvent(Base):
+    """Real-time rep detection events"""
+    __tablename__ = "rep_events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String, nullable=False, index=True)
+    workout_session_id = Column(Integer, ForeignKey("workout_sessions.id"), nullable=False)
+    
+    # Rep details
+    rep_number = Column(Integer, nullable=False)  # Rep number in current set
+    set_number = Column(Integer, nullable=False)  # Current set number
+    event_type = Column(Enum(RepEventType), default=RepEventType.rep_completed)
+    
+    # Detection metrics
+    detected_at = Column(DateTime(timezone=True), server_default=func.now())
+    confidence_score = Column(Float, nullable=False)
+    motion_quality = Column(Float, nullable=True)  # 0-1 scale for form quality
+    validated = Column(Boolean, default=True)  # Manual validation flag
+    
+    # Technical details
+    rep_duration = Column(Float, nullable=True)  # Duration in seconds
+    detection_method = Column(String, nullable=True)  # 'motion_cycle', 'ml_confidence', 'hybrid'
+    
+    # Relationships
+    workout_session = relationship("WorkoutSession", back_populates="rep_events")
