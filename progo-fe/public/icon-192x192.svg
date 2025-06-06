@@ -1,0 +1,10 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#4F46E5" rx="24"/>
+  <g transform="translate(48, 48)">
+    <path d="M24 4L32 12L24 20L16 12L24 4Z" fill="white" stroke="white" stroke-width="2"/>
+    <path d="M48 28L56 36L48 44L40 36L48 28Z" fill="white" stroke="white" stroke-width="2"/>
+    <path d="M24 52L32 60L24 68L16 60L24 52Z" fill="white" stroke="white" stroke-width="2"/>
+    <path d="M72 52L80 60L72 68L64 60L72 52Z" fill="white" stroke="white" stroke-width="2"/>
+    <text x="48" y="90" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">ProGo</text>
+  </g>
+</svg>
