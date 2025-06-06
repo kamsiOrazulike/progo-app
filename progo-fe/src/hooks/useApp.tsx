@@ -217,9 +217,8 @@ export function AppProvider({ children }: AppProviderProps) {
     try {
       dispatch({ type: 'CLEAR_ERROR' });
       
-      // Set up WebSocket handlers
-      wsManager.setConnectionStatusCallback(handleConnectionStatus);
-      wsManager.addMessageHandler(handleWebSocketMessage);
+      // Manual connection - user initiated
+      console.log('Manual connection initiated by user');
       
       // Connect to WebSocket
       await wsManager.connect();
@@ -227,11 +226,14 @@ export function AppProvider({ children }: AppProviderProps) {
       // Check initial model status
       await checkModelStatus();
       
+      // Show success notification for manual connection
+      notifications.success('Connected to device successfully!', 'manual-connect');
+      
     } catch (error) {
       console.error('Failed to connect to device:', error);
       const errorMessage = error instanceof Error ? error.message : 'Connection failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
-      notifications.error(`Connection failed: ${errorMessage}`);
+      notifications.error(`Connection failed: ${errorMessage}`, 'connect-error');
     }
   };
 
@@ -350,30 +352,13 @@ export function AppProvider({ children }: AppProviderProps) {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
-  // Auto-connect on mount
+  // Auto-connect on mount - DISABLED FOR MANUAL CONTROL
   useEffect(() => {
-    const connect = async () => {
-      try {
-        dispatch({ type: 'CLEAR_ERROR' });
-        
-        // Set up WebSocket handlers
-        wsManager.setConnectionStatusCallback(handleConnectionStatus);
-        wsManager.addMessageHandler(handleWebSocketMessage);
-        
-        // Connect to WebSocket
-        await wsManager.connect();
-        
-        // Check initial model status
-        await checkModelStatus();
-        
-      } catch (error) {
-        console.error('Failed to connect to device:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Connection failed';
-        dispatch({ type: 'SET_ERROR', payload: errorMessage });
-      }
-    };
-
-    connect();
+    console.log('App initialized. Connection is manual only.');
+    
+    // Set up WebSocket handlers but don't auto-connect
+    wsManager.setConnectionStatusCallback(handleConnectionStatus);
+    wsManager.addMessageHandler(handleWebSocketMessage);
     
     // Cleanup on unmount
     return () => {

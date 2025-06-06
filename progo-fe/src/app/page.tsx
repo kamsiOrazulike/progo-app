@@ -6,6 +6,7 @@ import DeviceStatus from '@/components/DeviceStatus';
 import TrainingPhase from '@/components/TrainingPhase';
 import WorkoutPhase from '@/components/WorkoutPhase';
 import { Activity, Dumbbell, Smartphone, RefreshCw } from 'lucide-react';
+import { wsManager } from '@/lib/websocket';
 
 export default function HomePage() {
   const { state, actions } = useApp();
@@ -37,8 +38,8 @@ export default function HomePage() {
   const currentWorkout = currentSession;
 
   useEffect(() => {
-    // Initialize WebSocket connection on component mount
-    actions.connectToDevice();
+    // No auto-connection - user must manually connect
+    console.log('HomePage initialized. Connection is manual only.');
     
     return () => {
       // Cleanup WebSocket connection on unmount
@@ -197,6 +198,18 @@ export default function HomePage() {
           </div>
         )}
       </div>
+      
+      {/* Emergency Stop Button - Development Only */}
+      {process.env.NODE_ENV === 'development' && (
+        <button 
+          onClick={() => {
+            wsManager.emergencyStop();
+          }}
+          className="fixed bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg z-50 shadow-lg font-semibold text-sm"
+        >
+          🛑 EMERGENCY STOP
+        </button>
+      )}
     </div>
   );
 }

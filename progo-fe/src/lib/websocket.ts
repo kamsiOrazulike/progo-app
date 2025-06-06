@@ -8,8 +8,7 @@ import {
   ErrorMessage,
   ConnectionStatus,
   DEVICE_ID,
-  WEBSOCKET_TIMEOUT,
-  CONNECTION_RETRY_DELAY
+  WEBSOCKET_TIMEOUT
 } from '@/types';
 
 export type MessageHandler = (message: WSMessage) => void;
@@ -17,13 +16,14 @@ export type MessageHandler = (message: WSMessage) => void;
 export class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+  private maxReconnectAttempts = 0; // DISABLED - NO AUTO RECONNECTION
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private messageHandlers: Set<MessageHandler> = new Set();
   private connectionStatusCallback: ((status: ConnectionStatus) => void) | null = null;
   private baseUrl: string;
-  private lastConnectionState: string = 'disconnected';
+  private lastConnectionState: ConnectionStatus = 'disconnected';
+  private notificationDebounce: NodeJS.Timeout | null = null;
 
   constructor(baseUrl: string = 'wss://progo-be.onrender.com') {
     this.baseUrl = baseUrl;
@@ -49,24 +49,33 @@ export class WebSocketManager {
   }
 
   private showConnectionStatus(status: ConnectionStatus) {
-    if (this.lastConnectionState !== status) {
-      this.lastConnectionState = status;
-      
-      switch(status) {
-        case 'connected':
-          notifications.success('Connected to device successfully!', 'connection-status');
-          break;
-        case 'disconnected':
-          notifications.warning('Device disconnected', 'connection-status');
-          break;
-        case 'error':
-          notifications.error('Connection failed', 'connection-status');
-          break;
-        case 'connecting':
-          // Don't show notification for connecting state to reduce noise
-          break;
-      }
+    // DEBOUNCED notification method to prevent spam
+    if (this.notificationDebounce) {
+      clearTimeout(this.notificationDebounce);
     }
+
+    this.notificationDebounce = setTimeout(() => {
+      // Only show if this is actually a state change
+      if (this.lastConnectionState !== status) {
+        this.lastConnectionState = status;
+        
+        // Only show notifications for manual actions - not automatic reconnections
+        switch(status) {
+          case 'connected':
+            notifications.success('Connected successfully!', 'connection-status');
+            break;
+          case 'disconnected':
+            // Don't show notification for disconnection to reduce noise
+            break;
+          case 'error':
+            // Don't show error notification automatically
+            break;
+          case 'connecting':
+            // Don't show notification for connecting state to reduce noise
+            break;
+        }
+      }
+    }, 1000); // 1 second debounce
   }
 
   private notifyHandlers(message: WSMessage) {
@@ -124,8 +133,11 @@ export class WebSocketManager {
           this.stopHeartbeat();
           this.updateConnectionStatus('disconnected');
           
-          if (event.code !== 1000) { // Not a normal closure
-            this.scheduleReconnect();
+          // DO NOT auto-reconnect - user must manually reconnect
+          // Clear any existing reconnection attempts
+          if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
           }
         };
 
@@ -133,6 +145,12 @@ export class WebSocketManager {
           console.error('WebSocket error:', error);
           clearTimeout(connectTimeout);
           this.updateConnectionStatus('error');
+          
+          // Clear any existing reconnection attempts - DO NOT auto-reconnect
+          if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+          }
           
           if (this.ws?.readyState === WebSocket.CONNECTING) {
             reject(new Error('Failed to connect to server'));
@@ -272,35 +290,30 @@ export class WebSocketManager {
   }
 
   private scheduleReconnect() {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-    }
-
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('Max reconnection attempts reached');
-      // Don't show error notification - let user manually reconnect via UI
-      return;
-    }
-
-    this.reconnectAttempts++;
-    const delay = CONNECTION_RETRY_DELAY * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
+    // COMPLETELY DISABLED - No automatic reconnection
+    console.log('Auto-reconnection disabled. User must manually reconnect.');
     
-    console.log(`Scheduling reconnection attempt ${this.reconnectAttempts} in ${delay}ms`);
-    
-    this.reconnectTimeout = setTimeout(() => {
-      if (this.ws?.readyState !== WebSocket.OPEN) {
-        console.log(`Reconnection attempt ${this.reconnectAttempts}`);
-        this.connect().catch(error => {
-          console.error('Reconnection failed:', error);
-        });
-      }
-    }, delay);
-  }
-
-  disconnect() {
+    // Clear any existing reconnection attempts
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
+    }
+    
+    return;
+  }
+
+  disconnect() {
+    console.log('Disconnecting WebSocket');
+    
+    // Clear ALL timers and intervals
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    
+    if (this.notificationDebounce) {
+      clearTimeout(this.notificationDebounce);
+      this.notificationDebounce = null;
     }
 
     this.stopHeartbeat();
@@ -315,16 +328,24 @@ export class WebSocketManager {
 
   // Manual reconnection method for user-triggered reconnection
   reconnect(): Promise<void> {
-    console.log('Manual reconnection requested');
+    console.log('Manual reconnection initiated by user');
     
-    // Cancel any pending automatic reconnection
+    // Clear ALL timeouts and attempts
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+    
+    if (this.notificationDebounce) {
+      clearTimeout(this.notificationDebounce);
+      this.notificationDebounce = null;
+    }
 
-    // Reset reconnection attempts for manual reconnection
+    // Reset attempts
     this.reconnectAttempts = 0;
+    
+    // Update to connecting state
+    this.updateConnectionStatus('connecting');
 
     // Disconnect current connection if any
     if (this.ws) {
@@ -332,8 +353,26 @@ export class WebSocketManager {
       this.ws = null;
     }
 
-    // Attempt to connect
-    return this.connect();
+    // Wait a moment before reconnecting
+    return new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          // Attempt to connect
+          await this.connect();
+          
+          // Show success notification only for manual reconnect
+          notifications.success('Connected successfully!', 'manual-reconnect');
+          resolve();
+        } catch (error) {
+          console.error('Manual reconnection failed:', error);
+          this.updateConnectionStatus('error');
+          
+          // Show error notification only for manual reconnect
+          notifications.error('Connection failed. Please try again.', 'manual-reconnect');
+          reject(error);
+        }
+      }, 500);
+    });
   }
 
   isConnected(): boolean {
@@ -347,6 +386,44 @@ export class WebSocketManager {
       console.warn('WebSocket not connected, cannot send message:', message);
       notifications.warning('Not connected to server');
     }
+  }
+
+  // Emergency stop method for debugging
+  emergencyStop() {
+    console.log('EMERGENCY STOP: Clearing all WebSocket activity');
+    
+    // Clear ALL timers and intervals
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    
+    if (this.notificationDebounce) {
+      clearTimeout(this.notificationDebounce);
+      this.notificationDebounce = null;
+    }
+    
+    this.stopHeartbeat();
+    
+    // Force close WebSocket
+    if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+      this.ws.onmessage = null;
+      this.ws.close(1000, 'Emergency stop');
+      this.ws = null;
+    }
+    
+    // Clear all toasts (use notifications.success to signal completion)
+    notifications.success('Emergency stop completed', 'emergency-stop');
+    
+    // Reset state
+    this.updateConnectionStatus('disconnected');
+    this.reconnectAttempts = 0;
+    this.lastConnectionState = 'disconnected';
+    
+    console.log('Emergency stop completed');
   }
 }
 
