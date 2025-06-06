@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { notifications } from './notifications';
 import {
   ApiResponse,
   StartTrainingRequest,
@@ -41,7 +41,7 @@ class ApiService {
       if (!response.ok) {
         const errorMessage = data.detail || data.message || `HTTP ${response.status}`;
         console.error('API Error:', errorMessage);
-        toast.error(`API Error: ${errorMessage}`);
+        notifications.error(`API Error: ${errorMessage}`);
         
         return {
           success: false,
@@ -57,7 +57,7 @@ class ApiService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Network error';
       console.error('Network Error:', error);
-      toast.error(`Network Error: ${errorMessage}`);
+      notifications.error(`Network Error: ${errorMessage}`);
       
       return {
         success: false,
@@ -189,10 +189,10 @@ export const api = {
     const result = await apiService.startTraining();
     
     if (result.success) {
-      toast.success('Training started successfully!');
+      notifications.success('Training started successfully!');
       return true;
     } else {
-      toast.error(`Failed to start training: ${result.error}`);
+      notifications.error(`Failed to start training: ${result.error}`);
       return false;
     }
   },
@@ -203,10 +203,10 @@ export const api = {
     const result = await apiService.startWorkout();
     
     if (result.success && result.data) {
-      toast.success('Workout started successfully!');
+      notifications.success('Workout started successfully!');
       return result.data.session_id;
     } else {
-      toast.error(`Failed to start workout: ${result.error}`);
+      notifications.error(`Failed to start workout: ${result.error}`);
       return null;
     }
   },
@@ -218,12 +218,12 @@ export const api = {
     
     if (result.success && result.data) {
       const { total_reps, total_sets, duration } = result.data;
-      toast.success(
+      notifications.success(
         `Workout completed! ${total_reps} reps, ${total_sets} sets in ${Math.round(duration/60)} minutes`
       );
       return true;
     } else {
-      toast.error(`Failed to stop workout: ${result.error}`);
+      notifications.error(`Failed to stop workout: ${result.error}`);
       return false;
     }
   },

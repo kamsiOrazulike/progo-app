@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { toast } from 'react-toastify';
+import { notifications } from '@/lib/notifications';
 import {
   AppState,
   WSMessage,
@@ -230,7 +230,7 @@ export function AppProvider({ children }: AppProviderProps) {
       console.error('Failed to connect to device:', error);
       const errorMessage = error instanceof Error ? error.message : 'Connection failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
-      toast.error(`Connection failed: ${errorMessage}`);
+      notifications.error(`Connection failed: ${errorMessage}`);
     }
   };
 

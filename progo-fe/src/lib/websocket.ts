@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { notifications } from './notifications';
 import {
   WSMessage,
   DeviceStatusMessage,
@@ -81,7 +81,7 @@ export class WebSocketManager {
           this.reconnectAttempts = 0;
           this.startHeartbeat();
           
-          toast.success('Connected to device successfully!');
+          notifications.once('ws-connected', 'success', 'Connected to device successfully!');
           resolve();
         };
 
@@ -92,7 +92,7 @@ export class WebSocketManager {
             this.handleMessage(message);
           } catch (error) {
             console.error('Error parsing WebSocket message:', error);
-            toast.error('Error processing server message');
+            notifications.error('Error processing server message');
           }
         };
 
@@ -103,7 +103,7 @@ export class WebSocketManager {
           this.updateConnectionStatus('disconnected');
           
           if (event.code !== 1000) { // Not a normal closure
-            toast.warning('Connection lost - attempting to reconnect...');
+            notifications.warning('Connection lost - attempting to reconnect...');
             this.scheduleReconnect();
           }
         };
@@ -116,7 +116,7 @@ export class WebSocketManager {
           if (this.ws?.readyState === WebSocket.CONNECTING) {
             reject(new Error('Failed to connect to server'));
           } else {
-            toast.error('Connection error occurred');
+            notifications.error('Connection error occurred');
           }
         };
 
@@ -164,13 +164,13 @@ export class WebSocketManager {
     
     switch (status) {
       case 'connected':
-        toast.success('ESP32 device connected and sending data');
+        notifications.success('ESP32 device connected and sending data');
         break;
       case 'idle':
-        toast.info('ESP32 device connected but idle');
+        notifications.info('ESP32 device connected but idle');
         break;
       case 'disconnected':
-        toast.warning('ESP32 device disconnected');
+        notifications.warning('ESP32 device disconnected');
         break;
     }
   }
@@ -180,23 +180,23 @@ export class WebSocketManager {
     
     switch (status) {
       case 'started':
-        toast.info('Training session started');
+        notifications.info('Training session started');
         break;
       case 'collecting':
         // Don't show toast for each update during collection
         break;
       case 'training':
-        toast.info('Training AI model...');
+        notifications.info('Training AI model...');
         break;
       case 'completed':
         if (accuracy !== undefined) {
-          toast.success(`Model training completed! Accuracy: ${(accuracy * 100).toFixed(1)}%`);
+          notifications.success(`Model training completed! Accuracy: ${(accuracy * 100).toFixed(1)}%`);
         } else {
-          toast.success('Model training completed!');
+          notifications.success('Model training completed!');
         }
         break;
       case 'error':
-        toast.error(`Training failed: ${msg || 'Unknown error'}`);
+        notifications.error(`Training failed: ${msg || 'Unknown error'}`);
         break;
     }
   }
@@ -211,7 +211,7 @@ export class WebSocketManager {
       'poor': '🔴'
     }[form_feedback];
     
-    toast.success(
+    notifications.success(
       `Rep ${rep_count} detected! ${feedbackEmoji} Form: ${form_feedback} (${(confidence * 100).toFixed(0)}%)`
     );
   }
@@ -221,13 +221,13 @@ export class WebSocketManager {
     
     switch (status) {
       case 'active':
-        toast.info('Workout session started - start your reps!');
+        notifications.info('Workout session started - start your reps!');
         break;
       case 'paused':
-        toast.info('Workout session paused');
+        notifications.info('Workout session paused');
         break;
       case 'completed':
-        toast.success('Workout session completed!');
+        notifications.success('Workout session completed!');
         break;
     }
   }
@@ -235,7 +235,7 @@ export class WebSocketManager {
   private handleError(message: ErrorMessage) {
     const { code, message: errorMsg } = message.data;
     console.error('Server error:', code, errorMsg);
-    toast.error(`Error ${code}: ${errorMsg}`);
+    notifications.error(`Error ${code}: ${errorMsg}`);
   }
 
   private startHeartbeat() {
@@ -260,7 +260,7 @@ export class WebSocketManager {
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('Max reconnection attempts reached');
-      toast.error('Unable to reconnect. Please refresh the page.');
+      notifications.error('Unable to reconnect. Please refresh the page.');
       return;
     }
 
@@ -304,7 +304,7 @@ export class WebSocketManager {
       this.ws.send(JSON.stringify(message));
     } else {
       console.warn('WebSocket not connected, cannot send message:', message);
-      toast.warning('Not connected to server');
+      notifications.warning('Not connected to server');
     }
   }
 }

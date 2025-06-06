@@ -16,18 +16,20 @@ export default function DeviceStatus({ className = '' }: DeviceStatusProps) {
     if (connectionStatus === 'disconnected' || connectionStatus === 'error') {
       return {
         icon: WifiOff,
-        color: 'text-red-400',
-        bgColor: 'bg-red-900/20',
-        status: 'Device Disconnected',
-        description: 'WebSocket connection lost'
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200',
+        status: 'Connection Failed',
+        description: 'Use retry button below'
       };
     }
 
     if (connectionStatus === 'connecting') {
       return {
         icon: Wifi,
-        color: 'text-yellow-400',
-        bgColor: 'bg-yellow-900/20',
+        color: 'text-purple-600',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-200',
         status: 'Connecting...',
         description: 'Establishing connection'
       };
@@ -37,24 +39,27 @@ export default function DeviceStatus({ className = '' }: DeviceStatusProps) {
       case 'connected':
         return {
           icon: Activity,
-          color: 'text-green-400',
-          bgColor: 'bg-green-900/20',
+          color: 'text-green-600',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
           status: 'Device Connected',
           description: 'ESP32 sending data'
         };
       case 'idle':
         return {
           icon: Wifi,
-          color: 'text-yellow-400',
-          bgColor: 'bg-yellow-900/20',
+          color: 'text-blue-600',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
           status: 'Device Idle',
           description: 'Connected but no recent data'
         };
       default:
         return {
           icon: AlertCircle,
-          color: 'text-red-400',
-          bgColor: 'bg-red-900/20',
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200',
           status: 'Device Disconnected',
           description: 'No data received'
         };
@@ -77,24 +82,24 @@ export default function DeviceStatus({ className = '' }: DeviceStatusProps) {
   };
 
   return (
-    <div className={`${statusInfo.bgColor} rounded-lg p-4 border border-gray-700 ${className}`}>
+    <div className={`${statusInfo.bgColor} rounded-lg p-3 sm:p-4 border ${statusInfo.borderColor} ${className} shadow-lg backdrop-blur-sm mx-2 sm:mx-0`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
-          <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
-          <span className="font-medium text-white">{statusInfo.status}</span>
+          <StatusIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${statusInfo.color}`} />
+          <span className="font-medium text-purple-900 text-sm sm:text-base">{statusInfo.status}</span>
         </div>
-        <div className={`w-3 h-3 rounded-full ${
-          deviceStatus === 'connected' ? 'bg-green-400 pulse-success' :
-          deviceStatus === 'idle' ? 'bg-yellow-400 pulse-warning' :
-          'bg-red-400 pulse-error'
+        <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${
+          deviceStatus === 'connected' ? 'bg-green-500 animate-pulse' :
+          deviceStatus === 'idle' ? 'bg-purple-500 animate-pulse' :
+          'bg-red-500 animate-pulse'
         }`} />
       </div>
       
-      <div className="text-sm text-gray-300 space-y-1">
-        <div>Device: <span className="font-mono text-blue-300">{DEVICE_ID}</span></div>
+      <div className="text-xs sm:text-sm text-purple-700 space-y-1">
+        <div>Device: <span className="font-mono text-purple-600 text-xs">{DEVICE_ID}</span></div>
         <div>{statusInfo.description}</div>
         {lastDataTime && (
-          <div>Last data: <span className="text-gray-400">{formatLastDataTime()}</span></div>
+          <div>Last data: <span className="text-purple-600">{formatLastDataTime()}</span></div>
         )}
       </div>
     </div>
