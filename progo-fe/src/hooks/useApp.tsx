@@ -130,6 +130,7 @@ interface AppContextType {
   actions: {
     connectToDevice: () => Promise<void>;
     disconnectFromDevice: () => void;
+    reconnectToDevice: () => Promise<void>;
     startTraining: () => Promise<void>;
     startWorkout: () => Promise<void>;
     stopWorkout: () => Promise<void>;
@@ -239,6 +240,23 @@ export function AppProvider({ children }: AppProviderProps) {
     wsManager.disconnect();
     dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' });
     dispatch({ type: 'SET_DEVICE_STATUS', payload: 'disconnected' });
+  };
+
+  const reconnectToDevice = async () => {
+    try {
+      dispatch({ type: 'CLEAR_ERROR' });
+      
+      // Use the reconnect method which handles cleanup and reconnection
+      await wsManager.reconnect();
+      
+      // Check model status after reconnection
+      await checkModelStatus();
+      
+    } catch (error) {
+      console.error('Failed to reconnect to device:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Reconnection failed';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    }
   };
 
   const startTraining = async () => {
@@ -382,6 +400,7 @@ export function AppProvider({ children }: AppProviderProps) {
     actions: {
       connectToDevice,
       disconnectFromDevice,
+      reconnectToDevice,
       startTraining,
       startWorkout,
       stopWorkout,

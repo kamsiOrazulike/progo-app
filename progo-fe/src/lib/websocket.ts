@@ -23,6 +23,7 @@ export class WebSocketManager {
   private messageHandlers: Set<MessageHandler> = new Set();
   private connectionStatusCallback: ((status: ConnectionStatus) => void) | null = null;
   private baseUrl: string;
+  private lastConnectionState: string = 'disconnected';
 
   constructor(baseUrl: string = 'wss://progo-be.onrender.com') {
     this.baseUrl = baseUrl;
@@ -43,6 +44,28 @@ export class WebSocketManager {
   private updateConnectionStatus(status: ConnectionStatus) {
     if (this.connectionStatusCallback) {
       this.connectionStatusCallback(status);
+    }
+    this.showConnectionStatus(status);
+  }
+
+  private showConnectionStatus(status: ConnectionStatus) {
+    if (this.lastConnectionState !== status) {
+      this.lastConnectionState = status;
+      
+      switch(status) {
+        case 'connected':
+          notifications.success('Connected to device successfully!', 'connection-status');
+          break;
+        case 'disconnected':
+          notifications.warning('Device disconnected', 'connection-status');
+          break;
+        case 'error':
+          notifications.error('Connection failed', 'connection-status');
+          break;
+        case 'connecting':
+          // Don't show notification for connecting state to reduce noise
+          break;
+      }
     }
   }
 
@@ -81,7 +104,6 @@ export class WebSocketManager {
           this.reconnectAttempts = 0;
           this.startHeartbeat();
           
-          notifications.once('ws-connected', 'success', 'Connected to device successfully!');
           resolve();
         };
 
@@ -103,7 +125,6 @@ export class WebSocketManager {
           this.updateConnectionStatus('disconnected');
           
           if (event.code !== 1000) { // Not a normal closure
-            notifications.warning('Connection lost - attempting to reconnect...');
             this.scheduleReconnect();
           }
         };
@@ -115,8 +136,6 @@ export class WebSocketManager {
           
           if (this.ws?.readyState === WebSocket.CONNECTING) {
             reject(new Error('Failed to connect to server'));
-          } else {
-            notifications.error('Connection error occurred');
           }
         };
 
@@ -162,16 +181,15 @@ export class WebSocketManager {
   private handleDeviceStatus(message: DeviceStatusMessage) {
     const { status } = message.data;
     
+    // Only show device status notifications for significant changes
     switch (status) {
       case 'connected':
-        notifications.success('ESP32 device connected and sending data');
-        break;
-      case 'idle':
-        notifications.info('ESP32 device connected but idle');
+        notifications.once('success', 'ESP32 device connected and sending data', 'device-connected');
         break;
       case 'disconnected':
-        notifications.warning('ESP32 device disconnected');
+        notifications.once('warning', 'ESP32 device disconnected', 'device-disconnected');
         break;
+      // Don't show notification for 'idle' status to reduce noise
     }
   }
 
@@ -260,7 +278,7 @@ export class WebSocketManager {
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('Max reconnection attempts reached');
-      notifications.error('Unable to reconnect. Please refresh the page.');
+      // Don't show error notification - let user manually reconnect via UI
       return;
     }
 
@@ -293,6 +311,29 @@ export class WebSocketManager {
     }
 
     this.updateConnectionStatus('disconnected');
+  }
+
+  // Manual reconnection method for user-triggered reconnection
+  reconnect(): Promise<void> {
+    console.log('Manual reconnection requested');
+    
+    // Cancel any pending automatic reconnection
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    // Reset reconnection attempts for manual reconnection
+    this.reconnectAttempts = 0;
+
+    // Disconnect current connection if any
+    if (this.ws) {
+      this.ws.close(1000, 'Manual reconnect');
+      this.ws = null;
+    }
+
+    // Attempt to connect
+    return this.connect();
   }
 
   isConnected(): boolean {
