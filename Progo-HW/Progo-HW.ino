@@ -1,8 +1,3 @@
-//🎉 ESP32 CODE - FIXED I2C MAGNETOMETER ISSUES
-//✅ IMPROVED: Better I2C error handling
-//✅ IMPROVED: Graceful magnetometer failure handling
-//✅ FIXED: Reduced I2C transaction frequency
-
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -11,27 +6,24 @@
 #include <Adafruit_LIS3MDL.h>
 #include <Adafruit_Sensor.h>
 
-// WiFi credentials
 const char* ssid = "Kamsi";
 const char* password = "nopassword";
 
-// API endpoints - FIXED: Use HTTP to avoid 307 redirects
 const char* apiEndpoint = "http://render-progo.onrender.com/api/v1/sensor-data/";
 const char* apiEndpointHTTPS = "https://render-progo.onrender.com/api/v1/sensor-data/";
-bool useHTTPS = false;  // Start with HTTP to avoid redirects
+bool useHTTPS = false; 
 
-// 🆔 DEVICE IDENTIFICATION
-String deviceId = "";    // Will be set to real MAC address
-String deviceInfo = "";  // Formatted device info
+String deviceId = "";   
+String deviceInfo = "";  
 
-// Exercise type for training data collection
-String currentExercise = "resting";  // Options: "bicep_curl", "squat", "resting"
+// Exercise type for training data collection set default to resting
+String currentExercise = "resting";  
 
-// Sensor objects
+// Sensors
 Adafruit_LSM6DSOX lsm6ds;
 Adafruit_LIS3MDL lis3mdl;
 bool magnetometer_available = false;
-bool magnetometer_enabled = true;  // Can disable if too many errors
+bool magnetometer_enabled = true; 
 
 // Data collection timing
 unsigned long lastSensorRead = 0;

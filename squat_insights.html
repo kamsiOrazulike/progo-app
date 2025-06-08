@@ -1,0 +1,771 @@
+<!-- A chart page from running a test and copy/pasting JSON data from my IMU sensor to visualise the data. On SQUATS -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Squat IMU Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        color: #2c3e50;
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .subtitle {
+        text-align: center;
+        color: #7f8c8d;
+        font-size: 1.2em;
+        margin-bottom: 30px;
+      }
+      .controls {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .btn-primary {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+      }
+      .btn-secondary {
+        background: linear-gradient(45deg, #f093fb, #f5576c);
+        color: white;
+      }
+      .btn-tertiary {
+        background: linear-gradient(45deg, #4facfe, #00f2fe);
+        color: white;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+      .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 30px;
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+      }
+      .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .stat-label {
+        font-size: 0.9em;
+        opacity: 0.9;
+      }
+      .activity-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+      .rest {
+        background-color: #2ecc71;
+      }
+      .movement {
+        background-color: #e74c3c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🏋️ Squat vs Rest Analysis</h1>
+      <p class="subtitle">IMU Sensor Data Visualization</p>
+
+      <div class="controls">
+        <button class="btn-primary" onclick="showAccelerometer()">
+          📊 Accelerometer
+        </button>
+        <button class="btn-secondary" onclick="showGyroscope()">
+          🌀 Gyroscope
+        </button>
+        <button class="btn-tertiary" onclick="showMagnitude()">
+          📈 Movement Magnitude
+        </button>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="chart"></canvas>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value" id="restCount">0</div>
+          <div class="stat-label">
+            <span class="activity-indicator rest"></span>Rest Periods
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="movementCount">0</div>
+          <div class="stat-label">
+            <span class="activity-indicator movement"></span>Movement Periods
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="maxAccel">0</div>
+          <div class="stat-label">Max Acceleration (m/s²)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avgTemp">0°C</div>
+          <div class="stat-label">Average Temperature</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // My IMU data pasted from backend
+      const rawData = {
+        items: [
+          {
+            id: 66,
+            timestamp: "2025-06-07T07:45:46",
+            accel_x: -0.100499,
+            accel_y: 0.265603,
+            accel_z: 9.827323,
+            gyro_x: 0.013134,
+            gyro_y: 0.005803,
+            gyro_z: -0.006414,
+            temperature: 27.05859,
+          },
+          {
+            id: 65,
+            timestamp: "2025-06-07T07:45:45",
+            accel_x: -0.11007,
+            accel_y: 0.275175,
+            accel_z: 9.852448,
+            gyro_x: 0.013439,
+            gyro_y: 0.003054,
+            gyro_z: -0.004887,
+            temperature: 27.01953,
+          },
+          {
+            id: 64,
+            timestamp: "2025-06-07T07:45:44",
+            accel_x: -0.111266,
+            accel_y: 0.271585,
+            accel_z: 9.830912,
+            gyro_x: 0.013439,
+            gyro_y: 0.008247,
+            gyro_z: -0.00672,
+            temperature: 26.96484,
+          },
+          {
+            id: 63,
+            timestamp: "2025-06-07T07:45:43",
+            accel_x: -0.114855,
+            accel_y: 0.267996,
+            accel_z: 9.833304,
+            gyro_x: 0.013744,
+            gyro_y: 0.007636,
+            gyro_z: -0.006414,
+            temperature: 27.00781,
+          },
+          {
+            id: 62,
+            timestamp: "2025-06-07T07:45:42",
+            accel_x: -0.117248,
+            accel_y: 0.27996,
+            accel_z: 9.840484,
+            gyro_x: 0.01405,
+            gyro_y: 0.007636,
+            gyro_z: -0.006109,
+            temperature: 26.98438,
+          },
+          {
+            id: 61,
+            timestamp: "2025-06-07T07:45:41",
+            accel_x: -0.114855,
+            accel_y: 0.269193,
+            accel_z: 9.826126,
+            gyro_x: 0.01405,
+            gyro_y: 0.007941,
+            gyro_z: -0.006109,
+            temperature: 27.01953,
+          },
+          {
+            id: 60,
+            timestamp: "2025-06-07T07:45:39",
+            accel_x: -0.125623,
+            accel_y: 0.25005,
+            accel_z: 9.835698,
+            gyro_x: 0.011912,
+            gyro_y: 0.007025,
+            gyro_z: -0.00672,
+            temperature: 26.98828,
+          },
+          {
+            id: 59,
+            timestamp: "2025-06-07T07:45:38",
+            accel_x: -0.125623,
+            accel_y: 0.283549,
+            accel_z: 9.832108,
+            gyro_x: 0.015272,
+            gyro_y: 0.008858,
+            gyro_z: -0.00672,
+            temperature: 27.01172,
+          },
+          {
+            id: 58,
+            timestamp: "2025-06-07T07:45:37",
+            accel_x: -0.120838,
+            accel_y: 0.272782,
+            accel_z: 9.848859,
+            gyro_x: 0.013744,
+            gyro_y: 0.00733,
+            gyro_z: -0.006109,
+            temperature: 26.97266,
+          },
+          {
+            id: 57,
+            timestamp: "2025-06-07T07:45:36",
+            accel_x: -0.117248,
+            accel_y: 0.293121,
+            accel_z: 9.842876,
+            gyro_x: 0.014966,
+            gyro_y: 0.007636,
+            gyro_z: -0.00672,
+            temperature: 27.01563,
+          },
+          {
+            id: 56,
+            timestamp: "2025-06-07T07:45:34",
+            accel_x: -0.128016,
+            accel_y: 0.257228,
+            accel_z: 9.844072,
+            gyro_x: 0.013439,
+            gyro_y: 0.01069,
+            gyro_z: -0.00672,
+            temperature: 26.96875,
+          },
+          {
+            id: 55,
+            timestamp: "2025-06-07T07:45:33",
+            accel_x: -0.112463,
+            accel_y: 0.315853,
+            accel_z: 9.872787,
+            gyro_x: 0.016493,
+            gyro_y: 0.008552,
+            gyro_z: -0.00733,
+            temperature: 26.92578,
+          },
+          {
+            id: 54,
+            timestamp: "2025-06-07T07:45:32",
+            accel_x: -0.120838,
+            accel_y: 0.291924,
+            accel_z: 9.83809,
+            gyro_x: 0.018021,
+            gyro_y: 0.007636,
+            gyro_z: -0.005498,
+            temperature: 26.95313,
+          },
+          {
+            id: 53,
+            timestamp: "2025-06-07T07:45:31",
+            accel_x: -0.09332,
+            accel_y: 0.362513,
+            accel_z: 9.832108,
+            gyro_x: 0.009468,
+            gyro_y: 0.010079,
+            gyro_z: -0.007941,
+            temperature: 26.97266,
+          },
+          {
+            id: 52,
+            timestamp: "2025-06-07T07:45:30",
+            accel_x: 1.496711,
+            accel_y: -0.636491,
+            accel_z: 8.908479,
+            gyro_x: -0.457233,
+            gyro_y: -0.016493,
+            gyro_z: 0.593456,
+            temperature: 26.94141,
+          },
+          {
+            id: 51,
+            timestamp: "2025-06-07T07:45:29",
+            accel_x: -0.607777,
+            accel_y: -3.565306,
+            accel_z: 8.103294,
+            gyro_x: 0.417832,
+            gyro_y: -0.32101,
+            gyro_z: -0.323453,
+            temperature: 26.95703,
+          },
+          {
+            id: 50,
+            timestamp: "2025-06-07T07:45:28",
+            accel_x: -1.342373,
+            accel_y: -0.972682,
+            accel_z: 8.962317,
+            gyro_x: -0.13042,
+            gyro_y: 0.067806,
+            gyro_z: 0.044593,
+            temperature: 26.88672,
+          },
+          {
+            id: 49,
+            timestamp: "2025-06-07T07:45:26",
+            accel_x: 1.292124,
+            accel_y: 2.191825,
+            accel_z: 9.457632,
+            gyro_x: 0.03146,
+            gyro_y: -0.047342,
+            gyro_z: -0.007025,
+            temperature: 26.9375,
+          },
+          {
+            id: 48,
+            timestamp: "2025-06-07T07:45:26",
+            accel_x: 2.545963,
+            accel_y: 1.147359,
+            accel_z: 9.413364,
+            gyro_x: 0.581238,
+            gyro_y: 0.426384,
+            gyro_z: -0.190895,
+            temperature: 26.96484,
+          },
+          {
+            id: 47,
+            timestamp: "2025-06-07T07:45:25",
+            accel_x: -2.49691,
+            accel_y: -2.907279,
+            accel_z: 7.966903,
+            gyro_x: -0.016188,
+            gyro_y: -0.126144,
+            gyro_z: -0.048869,
+            temperature: 26.94141,
+          },
+          {
+            id: 46,
+            timestamp: "2025-06-07T07:45:24",
+            accel_x: -0.081356,
+            accel_y: 1.146162,
+            accel_z: 9.559327,
+            gyro_x: -0.635605,
+            gyro_y: 0.32498,
+            gyro_z: 0.053756,
+            temperature: 26.9375,
+          },
+          {
+            id: 45,
+            timestamp: "2025-06-07T07:45:22",
+            accel_x: 0.866202,
+            accel_y: 1.231107,
+            accel_z: 9.876375,
+            gyro_x: 0.089492,
+            gyro_y: 0.007025,
+            gyro_z: 0.01069,
+            temperature: 26.94922,
+          },
+          {
+            id: 44,
+            timestamp: "2025-06-07T07:45:21",
+            accel_x: 1.168894,
+            accel_y: -0.837488,
+            accel_z: 11.09073,
+            gyro_x: 0.584293,
+            gyro_y: -0.283441,
+            gyro_z: 0.018021,
+            temperature: 26.94141,
+          },
+          {
+            id: 43,
+            timestamp: "2025-06-07T07:45:21",
+            accel_x: -1.147359,
+            accel_y: -2.618945,
+            accel_z: 9.292527,
+            gyro_x: -0.116675,
+            gyro_y: -0.332311,
+            gyro_z: -0.22266,
+            temperature: 26.88281,
+          },
+          {
+            id: 42,
+            timestamp: "2025-06-07T07:45:19",
+            accel_x: 0.382852,
+            accel_y: 0.33021,
+            accel_z: 9.4349,
+            gyro_x: -0.699746,
+            gyro_y: 0.566577,
+            gyro_z: 0.10568,
+            temperature: 26.9375,
+          },
+          {
+            id: 41,
+            timestamp: "2025-06-07T07:45:18",
+            accel_x: 0.717847,
+            accel_y: 1.625923,
+            accel_z: 9.772288,
+            gyro_x: -0.045204,
+            gyro_y: -0.049175,
+            gyro_z: 0.005498,
+            temperature: 26.91797,
+          },
+          {
+            id: 40,
+            timestamp: "2025-06-07T07:45:17",
+            accel_x: 0.272782,
+            accel_y: -0.496511,
+            accel_z: 6.513264,
+            gyro_x: 0.025962,
+            gyro_y: 0.181427,
+            gyro_z: -0.307571,
+            temperature: 26.92188,
+          },
+          {
+            id: 39,
+            timestamp: "2025-06-07T07:45:16",
+            accel_x: -1.087538,
+            accel_y: -1.615155,
+            accel_z: 9.565309,
+            gyro_x: -0.008552,
+            gyro_y: -0.16921,
+            gyro_z: 0.119424,
+            temperature: 26.92188,
+          },
+          {
+            id: 38,
+            timestamp: "2025-06-07T07:45:16",
+            accel_x: 0.514457,
+            accel_y: -0.17348,
+            accel_z: 9.284152,
+            gyro_x: -0.578489,
+            gyro_y: 0.198226,
+            gyro_z: 0.155771,
+            temperature: 26.92578,
+          },
+          {
+            id: 37,
+            timestamp: "2025-06-07T07:45:14",
+            accel_x: 1.198804,
+            accel_y: 0.692722,
+            accel_z: 10.03789,
+            gyro_x: 0.034208,
+            gyro_y: -0.040928,
+            gyro_z: -0.053451,
+            temperature: 26.90234,
+          },
+          {
+            id: 36,
+            timestamp: "2025-06-07T07:45:13",
+            accel_x: 0.599402,
+            accel_y: -1.226322,
+            accel_z: 8.620144,
+            gyro_x: 0.198531,
+            gyro_y: -0.186925,
+            gyro_z: -0.277027,
+            temperature: 26.85156,
+          },
+          {
+            id: 35,
+            timestamp: "2025-06-07T07:45:12",
+            accel_x: -2.413162,
+            accel_y: -2.158326,
+            accel_z: 8.1679,
+            gyro_x: -0.083078,
+            gyro_y: -0.000611,
+            gyro_z: 0.13042,
+            temperature: 26.88281,
+          },
+          {
+            id: 34,
+            timestamp: "2025-06-07T07:45:11",
+            accel_x: 0.799203,
+            accel_y: 1.367498,
+            accel_z: 12.35055,
+            gyro_x: -0.197615,
+            gyro_y: 0.401338,
+            gyro_z: 0.077885,
+            temperature: 26.92969,
+          },
+          {
+            id: 33,
+            timestamp: "2025-06-07T07:45:10",
+            accel_x: 1.087538,
+            accel_y: 1.350748,
+            accel_z: 10.36092,
+            gyro_x: -0.516487,
+            gyro_y: 0.04948,
+            gyro_z: 0.112399,
+            temperature: 26.91016,
+          },
+          {
+            id: 32,
+            timestamp: "2025-06-07T07:45:09",
+            accel_x: -0.68674,
+            accel_y: -1.714458,
+            accel_z: 9.036495,
+            gyro_x: 0.268475,
+            gyro_y: -0.055589,
+            gyro_z: -0.048869,
+            temperature: 26.89844,
+          },
+          {
+            id: 31,
+            timestamp: "2025-06-07T07:45:08",
+            accel_x: -3.481557,
+            accel_y: -2.646462,
+            accel_z: 4.663611,
+            gyro_x: -0.048564,
+            gyro_y: -0.511905,
+            gyro_z: 0.103236,
+            temperature: 26.875,
+          },
+          {
+            id: 30,
+            timestamp: "2025-06-07T07:45:07",
+            accel_x: 0.397209,
+            accel_y: -3.556931,
+            accel_z: 6.957132,
+            gyro_x: 2.711936,
+            gyro_y: 0.383929,
+            gyro_z: -1.090089,
+            temperature: 26.87891,
+          },
+          {
+            id: 29,
+            timestamp: "2025-06-07T07:45:06",
+            accel_x: -1.044467,
+            accel_y: 0.430708,
+            accel_z: 10.08814,
+            gyro_x: 0.174402,
+            gyro_y: 0.068417,
+            gyro_z: -0.033292,
+            temperature: 26.85156,
+          },
+        ],
+      };
+
+      // Process data
+      const data = rawData.items.reverse(); // Reverse to show chronological order
+
+      // Calculate movement vs rest periods based on acceleration magnitude
+      const processedData = data.map((item) => {
+        const magnitude = Math.sqrt(
+          item.accel_x ** 2 + item.accel_y ** 2 + item.accel_z ** 2
+        );
+        const gyroMagnitude = Math.sqrt(
+          item.gyro_x ** 2 + item.gyro_y ** 2 + item.gyro_z ** 2
+        );
+        const isMovement = magnitude > 10.5 || gyroMagnitude > 0.1; // Threshold for movement detection
+
+        return {
+          ...item,
+          magnitude,
+          gyroMagnitude,
+          isMovement,
+          time: new Date(item.timestamp).toLocaleTimeString(),
+        };
+      });
+
+      // Create labels (time)
+      const labels = processedData.map((d) => d.time);
+
+      let chart;
+
+      function createChart(datasets, title) {
+        const ctx = document.getElementById("chart").getContext("2d");
+
+        if (chart) {
+          chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: datasets,
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: title,
+                font: { size: 18, weight: "bold" },
+                color: "#2c3e50",
+              },
+              legend: {
+                position: "top",
+                labels: {
+                  usePointStyle: true,
+                  font: { size: 12 },
+                },
+              },
+            },
+            scales: {
+              y: {
+                grid: { color: "rgba(0,0,0,0.1)" },
+                ticks: { font: { size: 11 } },
+              },
+              x: {
+                grid: { color: "rgba(0,0,0,0.1)" },
+                ticks: {
+                  font: { size: 10 },
+                  maxTicksLimit: 10,
+                },
+              },
+            },
+            elements: {
+              point: { radius: 3, hoverRadius: 6 },
+              line: { tension: 0.1 },
+            },
+          },
+        });
+      }
+
+      function showAccelerometer() {
+        const datasets = [
+          {
+            label: "Accel X",
+            data: processedData.map((d) => d.accel_x),
+            borderColor: "#e74c3c",
+            backgroundColor: "rgba(231, 76, 60, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Accel Y",
+            data: processedData.map((d) => d.accel_y),
+            borderColor: "#f39c12",
+            backgroundColor: "rgba(243, 156, 18, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Accel Z",
+            data: processedData.map((d) => d.accel_z),
+            borderColor: "#2ecc71",
+            backgroundColor: "rgba(46, 204, 113, 0.1)",
+            fill: false,
+          },
+        ];
+        createChart(
+          datasets,
+          "Accelerometer Data (m/s²) - Squat Motion Analysis"
+        );
+      }
+
+      function showGyroscope() {
+        const datasets = [
+          {
+            label: "Gyro X",
+            data: processedData.map((d) => d.gyro_x),
+            borderColor: "#9b59b6",
+            backgroundColor: "rgba(155, 89, 182, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Gyro Y",
+            data: processedData.map((d) => d.gyro_y),
+            borderColor: "#3498db",
+            backgroundColor: "rgba(52, 152, 219, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Gyro Z",
+            data: processedData.map((d) => d.gyro_z),
+            borderColor: "#e67e22",
+            backgroundColor: "rgba(230, 126, 34, 0.1)",
+            fill: false,
+          },
+        ];
+        createChart(datasets, "Gyroscope Data (rad/s) - Rotational Movement");
+      }
+
+      function showMagnitude() {
+        const datasets = [
+          {
+            label: "Acceleration Magnitude",
+            data: processedData.map((d) => d.magnitude),
+            borderColor: "#e74c3c",
+            backgroundColor: "rgba(231, 76, 60, 0.2)",
+            fill: true,
+          },
+          {
+            label: "Movement Threshold",
+            data: Array(processedData.length).fill(10.5),
+            borderColor: "#95a5a6",
+            backgroundColor: "transparent",
+            borderDash: [5, 5],
+            fill: false,
+          },
+        ];
+        createChart(datasets, "Movement Magnitude Analysis - Squat Detection");
+      }
+
+      function updateStats() {
+        const restCount = processedData.filter((d) => !d.isMovement).length;
+        const movementCount = processedData.filter((d) => d.isMovement).length;
+        const maxAccel = Math.max(
+          ...processedData.map((d) => d.magnitude)
+        ).toFixed(2);
+        const avgTemp = (
+          processedData.reduce((sum, d) => sum + d.temperature, 0) /
+          processedData.length
+        ).toFixed(1);
+
+        document.getElementById("restCount").textContent = restCount;
+        document.getElementById("movementCount").textContent = movementCount;
+        document.getElementById("maxAccel").textContent = maxAccel;
+        document.getElementById("avgTemp").textContent = avgTemp;
+      }
+
+      // Initialize
+      showAccelerometer();
+      updateStats();
+    </script>
+  </body>
+</html>

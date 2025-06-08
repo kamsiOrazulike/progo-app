@@ -1,0 +1,1221 @@
+<!-- A chart page from running a test and copy/pasting JSON data from my IMU sensor to visualise the data. On BICEP CURLS -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bicep Curl IMU Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        color: #2c3e50;
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        background: linear-gradient(45deg, #e74c3c, #f39c12);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .subtitle {
+        text-align: center;
+        color: #7f8c8d;
+        font-size: 1.2em;
+        margin-bottom: 30px;
+      }
+      .controls {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .btn-primary {
+        background: linear-gradient(45deg, #e74c3c, #c0392b);
+        color: white;
+      }
+      .btn-secondary {
+        background: linear-gradient(45deg, #f39c12, #e67e22);
+        color: white;
+      }
+      .btn-tertiary {
+        background: linear-gradient(45deg, #9b59b6, #8e44ad);
+        color: white;
+      }
+      .btn-quaternary {
+        background: linear-gradient(45deg, #2ecc71, #27ae60);
+        color: white;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+      .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 30px;
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+      }
+      .stat-card {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .stat-label {
+        font-size: 0.9em;
+        opacity: 0.9;
+      }
+      .activity-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+      .rest {
+        background-color: #2ecc71;
+      }
+      .curl {
+        background-color: #e74c3c;
+      }
+      .insights {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+      }
+      .insights h3 {
+        margin-top: 0;
+        font-size: 1.3em;
+      }
+      .insights ul {
+        margin-bottom: 0;
+      }
+      .insights li {
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>💪 Bicep Curl Analysis</h1>
+      <p class="subtitle">IMU Sensor Data - Arm Movement Tracking</p>
+
+      <div class="controls">
+        <button class="btn-primary" onclick="showAccelerometer()">
+          📊 Accelerometer
+        </button>
+        <button class="btn-secondary" onclick="showGyroscope()">
+          🌀 Gyroscope
+        </button>
+        <button class="btn-tertiary" onclick="showMagnitude()">
+          📈 Movement Intensity
+        </button>
+        <button class="btn-quaternary" onclick="showCurlPhases()">
+          🔄 Curl Phases
+        </button>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="chart"></canvas>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value" id="restCount">0</div>
+          <div class="stat-label">
+            <span class="activity-indicator rest"></span>Rest Periods
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="curlCount">0</div>
+          <div class="stat-label">
+            <span class="activity-indicator curl"></span>Curl Movements
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="maxRotation">0</div>
+          <div class="stat-label">Max Rotation (rad/s)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avgTemp">0°C</div>
+          <div class="stat-label">Average Temperature</div>
+        </div>
+      </div>
+<!-- 
+      <div class="insights">
+        <h3>🧠 Bicep Curl Analysis Insights</h3>
+        <ul>
+          <li>
+            <strong>Curl Detection:</strong> Clear rotational patterns in
+            gyroscope data indicate controlled arm movements
+          </li>
+          <li>
+            <strong>Form Analysis:</strong> Y-axis acceleration shows lifting
+            motion, Z-axis shows arm rotation
+          </li>
+          <li>
+            <strong>Range of Motion:</strong> Gyroscope spikes correlate with
+            elbow joint rotation during curls
+          </li>
+          <li>
+            <strong>Rest vs Activity:</strong> Distinct separation between rest
+            periods and active bicep curl phases
+          </li>
+          <li>
+            <strong>Movement Quality:</strong> Consistent acceleration patterns
+            suggest controlled, proper form
+          </li>
+        </ul>
+      </div> -->
+    </div>
+
+    <script>
+      // My Bicep curl IMU data 8 Reps
+      const rawData = {
+        items: [
+          {
+            id: 76,
+            timestamp: "2025-06-07T09:11:08",
+            accel_x: 0.154337,
+            accel_y: 2.611766,
+            accel_z: 9.481561,
+            gyro_x: 0.01405,
+            gyro_y: 0.007025,
+            gyro_z: -0.006414,
+            temperature: 27.89453,
+          },
+          {
+            id: 75,
+            timestamp: "2025-06-07T09:11:07",
+            accel_x: 0.143569,
+            accel_y: 2.626123,
+            accel_z: 9.457632,
+            gyro_x: 0.014661,
+            gyro_y: 0.007636,
+            gyro_z: -0.007025,
+            temperature: 27.88281,
+          },
+          {
+            id: 74,
+            timestamp: "2025-06-07T09:11:06",
+            accel_x: 0.138784,
+            accel_y: 2.611766,
+            accel_z: 9.461221,
+            gyro_x: 0.01405,
+            gyro_y: 0.00733,
+            gyro_z: -0.00672,
+            temperature: 27.875,
+          },
+          {
+            id: 73,
+            timestamp: "2025-06-07T09:11:05",
+            accel_x: 0.149551,
+            accel_y: 2.621337,
+            accel_z: 9.492327,
+            gyro_x: 0.014661,
+            gyro_y: 0.007636,
+            gyro_z: -0.00672,
+            temperature: 27.86719,
+          },
+          {
+            id: 72,
+            timestamp: "2025-06-07T09:11:03",
+            accel_x: 0.145962,
+            accel_y: 2.595016,
+            accel_z: 9.46481,
+            gyro_x: 0.01405,
+            gyro_y: 0.007636,
+            gyro_z: -0.00672,
+            temperature: 27.87891,
+          },
+          {
+            id: 71,
+            timestamp: "2025-06-07T09:11:02",
+            accel_x: 0.147159,
+            accel_y: 2.603391,
+            accel_z: 9.460025,
+            gyro_x: 0.014661,
+            gyro_y: 0.007636,
+            gyro_z: -0.006109,
+            temperature: 27.87109,
+          },
+          {
+            id: 70,
+            timestamp: "2025-06-07T09:11:00",
+            accel_x: 0.145962,
+            accel_y: 2.584248,
+            accel_z: 9.476774,
+            gyro_x: 0.014355,
+            gyro_y: 0.007636,
+            gyro_z: -0.00672,
+            temperature: 27.875,
+          },
+          {
+            id: 69,
+            timestamp: "2025-06-07T09:10:58",
+            accel_x: 0.144766,
+            accel_y: 2.583052,
+            accel_z: 9.493524,
+            gyro_x: 0.014966,
+            gyro_y: 0.008247,
+            gyro_z: -0.006109,
+            temperature: 27.875,
+          },
+          {
+            id: 68,
+            timestamp: "2025-06-07T09:10:57",
+            accel_x: 0.165105,
+            accel_y: 2.57707,
+            accel_z: 9.492327,
+            gyro_x: 0.014966,
+            gyro_y: 0.007025,
+            gyro_z: -0.007025,
+            temperature: 27.83984,
+          },
+          {
+            id: 67,
+            timestamp: "2025-06-07T09:10:56",
+            accel_x: 0.172283,
+            accel_y: 2.51366,
+            accel_z: 9.41456,
+            gyro_x: 0.013744,
+            gyro_y: 0.007025,
+            gyro_z: -0.006414,
+            temperature: 27.875,
+          },
+          {
+            id: 66,
+            timestamp: "2025-06-07T09:10:55",
+            accel_x: 0.15673,
+            accel_y: 2.565106,
+            accel_z: 9.481561,
+            gyro_x: 0.039706,
+            gyro_y: 0.00733,
+            gyro_z: -0.007636,
+            temperature: 27.85547,
+          },
+          {
+            id: 65,
+            timestamp: "2025-06-07T09:10:55",
+            accel_x: 1.350748,
+            accel_y: -8.25165,
+            accel_z: -6.6341,
+            gyro_x: -1.008844,
+            gyro_y: -0.007941,
+            gyro_z: 0.128893,
+            temperature: 27.86719,
+          },
+          {
+            id: 64,
+            timestamp: "2025-06-07T09:10:48",
+            accel_x: 0.4666,
+            accel_y: -0.97029,
+            accel_z: 11.05245,
+            gyro_x: -1.73669,
+            gyro_y: 0.034208,
+            gyro_z: 0.069639,
+            temperature: 27.875,
+          },
+          {
+            id: 63,
+            timestamp: "2025-06-07T09:10:46",
+            accel_x: 0.551546,
+            accel_y: -2.739782,
+            accel_z: 10.02473,
+            gyro_x: 1.502728,
+            gyro_y: 0.045204,
+            gyro_z: -0.093157,
+            temperature: 27.89063,
+          },
+          {
+            id: 62,
+            timestamp: "2025-06-07T09:10:45",
+            accel_x: -0.853041,
+            accel_y: -9.332008,
+            accel_z: 0.25005,
+            gyro_x: 1.340544,
+            gyro_y: -0.139277,
+            gyro_z: -0.015272,
+            temperature: 27.90234,
+          },
+          {
+            id: 61,
+            timestamp: "2025-06-07T09:10:45",
+            accel_x: 0.579063,
+            accel_y: -5.740382,
+            accel_z: 6.958328,
+            gyro_x: -2.016161,
+            gyro_y: -0.476169,
+            gyro_z: -0.050702,
+            temperature: 27.88281,
+          },
+          {
+            id: 60,
+            timestamp: "2025-06-07T09:10:43",
+            accel_x: 0.056231,
+            accel_y: 2.018346,
+            accel_z: 10.36212,
+            gyro_x: 0.602619,
+            gyro_y: 0.151495,
+            gyro_z: 0.128893,
+            temperature: 27.91016,
+          },
+          {
+            id: 59,
+            timestamp: "2025-06-07T09:10:42",
+            accel_x: 0.22014,
+            accel_y: -7.158129,
+            accel_z: -6.150751,
+            gyro_x: 0.460592,
+            gyro_y: 0.021075,
+            gyro_z: 0.131947,
+            temperature: 27.90625,
+          },
+          {
+            id: 58,
+            timestamp: "2025-06-07T09:10:40",
+            accel_x: 0.57667,
+            accel_y: -5.752346,
+            accel_z: 7.801798,
+            gyro_x: -2.083661,
+            gyro_y: 0.023213,
+            gyro_z: 0.456011,
+            temperature: 27.86328,
+          },
+          {
+            id: 57,
+            timestamp: "2025-06-07T09:10:39",
+            accel_x: 0.547956,
+            accel_y: -1.323231,
+            accel_z: 9.686147,
+            gyro_x: 0.586736,
+            gyro_y: 0.107512,
+            gyro_z: 0.152411,
+            temperature: 27.88672,
+          },
+          {
+            id: 56,
+            timestamp: "2025-06-07T09:10:38",
+            accel_x: -0.058624,
+            accel_y: -8.734999,
+            accel_z: -2.634498,
+            gyro_x: 1.145067,
+            gyro_y: -0.122784,
+            gyro_z: -0.034514,
+            temperature: 27.90625,
+          },
+          {
+            id: 55,
+            timestamp: "2025-06-07T09:10:37",
+            accel_x: 1.377069,
+            accel_y: -6.912865,
+            accel_z: -5.084748,
+            gyro_x: -1.125825,
+            gyro_y: 0.070555,
+            gyro_z: 0.098655,
+            temperature: 27.90234,
+          },
+          {
+            id: 54,
+            timestamp: "2025-06-07T09:10:35",
+            accel_x: 0.100499,
+            accel_y: -2.500499,
+            accel_z: 10.29273,
+            gyro_x: -2.010968,
+            gyro_y: 0.085521,
+            gyro_z: 0.025962,
+            temperature: 27.90625,
+          },
+          {
+            id: 53,
+            timestamp: "2025-06-07T09:10:35",
+            accel_x: 0.020339,
+            accel_y: -7.860423,
+            accel_z: 4.560719,
+            gyro_x: 1.506088,
+            gyro_y: -0.141721,
+            gyro_z: -0.074526,
+            temperature: 27.92578,
+          },
+          {
+            id: 52,
+            timestamp: "2025-06-07T09:10:29",
+            accel_x: 0.552742,
+            accel_y: -7.033703,
+            accel_z: -6.482157,
+            gyro_x: 0.321926,
+            gyro_y: -0.023518,
+            gyro_z: 0.000916,
+            temperature: 27.91797,
+          },
+          {
+            id: 51,
+            timestamp: "2025-06-07T09:10:28",
+            accel_x: 0.943969,
+            accel_y: -6.867402,
+            accel_z: 7.670193,
+            gyro_x: -1.614517,
+            gyro_y: -0.237932,
+            gyro_z: -0.454178,
+            temperature: 27.90625,
+          },
+          {
+            id: 50,
+            timestamp: "2025-06-07T09:10:26",
+            accel_x: 0.090927,
+            accel_y: 0.084945,
+            accel_z: 10.18625,
+            gyro_x: 0.282831,
+            gyro_y: -0.164017,
+            gyro_z: -0.614836,
+            temperature: 27.95313,
+          },
+          {
+            id: 49,
+            timestamp: "2025-06-07T09:10:25",
+            accel_x: 0.583849,
+            accel_y: -7.944171,
+            accel_z: 5.139783,
+            gyro_x: 1.836872,
+            gyro_y: -0.048869,
+            gyro_z: -0.041539,
+            temperature: 27.99219,
+          },
+          {
+            id: 48,
+            timestamp: "2025-06-07T09:10:25",
+            accel_x: 1.450051,
+            accel_y: -5.644669,
+            accel_z: -7.122236,
+            gyro_x: 0.068722,
+            gyro_y: 0.030543,
+            gyro_z: 0.108734,
+            temperature: 27.88672,
+          },
+          {
+            id: 47,
+            timestamp: "2025-06-07T09:10:23",
+            accel_x: 0.862613,
+            accel_y: -4.643272,
+            accel_z: 11.99402,
+            gyro_x: -1.980425,
+            gyro_y: -0.078802,
+            gyro_z: -0.17654,
+            temperature: 27.94922,
+          },
+          {
+            id: 46,
+            timestamp: "2025-06-07T09:10:23",
+            accel_x: 2.012364,
+            accel_y: -6.725029,
+            accel_z: -5.649454,
+            gyro_x: 0.777326,
+            gyro_y: -0.440739,
+            gyro_z: 0.213192,
+            temperature: 27.91016,
+          },
+          {
+            id: 45,
+            timestamp: "2025-06-07T09:10:21",
+            accel_x: 0.522832,
+            accel_y: 4.569095,
+            accel_z: 9.909875,
+            gyro_x: -0.91416,
+            gyro_y: -0.326813,
+            gyro_z: 0.150578,
+            temperature: 27.91797,
+          },
+          {
+            id: 44,
+            timestamp: "2025-06-07T09:10:20",
+            accel_x: 1.178465,
+            accel_y: -5.134997,
+            accel_z: 5.906683,
+            gyro_x: 2.276084,
+            gyro_y: 0.197004,
+            gyro_z: -0.2755,
+            temperature: 27.92578,
+          },
+          {
+            id: 43,
+            timestamp: "2025-06-07T09:10:19",
+            accel_x: 2.510071,
+            accel_y: -7.366304,
+            accel_z: -4.821537,
+            gyro_x: -2.614198,
+            gyro_y: 0.161268,
+            gyro_z: 0.543975,
+            temperature: 27.91016,
+          },
+          {
+            id: 42,
+            timestamp: "2025-06-07T09:10:18",
+            accel_x: 0.200997,
+            accel_y: 0.306281,
+            accel_z: 11.09911,
+            gyro_x: 0.028405,
+            gyro_y: 0.50824,
+            gyro_z: -0.227547,
+            temperature: 27.91406,
+          },
+          {
+            id: 41,
+            timestamp: "2025-06-07T09:10:16",
+            accel_x: -0.014357,
+            accel_y: -1.17009,
+            accel_z: 9.803394,
+            gyro_x: 0.040012,
+            gyro_y: 0.006414,
+            gyro_z: -0.005803,
+            temperature: 27.94531,
+          },
+          {
+            id: 40,
+            timestamp: "2025-06-07T09:10:16",
+            accel_x: -0.011964,
+            accel_y: -1.070788,
+            accel_z: 9.798609,
+            gyro_x: -0.00336,
+            gyro_y: 0.008247,
+            gyro_z: -0.00672,
+            temperature: 27.96094,
+          },
+          {
+            id: 39,
+            timestamp: "2025-06-07T09:10:14",
+            accel_x: -0.020339,
+            accel_y: -0.930808,
+            accel_z: 9.786645,
+            gyro_x: 0.014355,
+            gyro_y: 0.00672,
+            gyro_z: -0.006109,
+            temperature: 27.96094,
+          },
+          {
+            id: 38,
+            timestamp: "2025-06-07T09:10:11",
+            accel_x: -0.019143,
+            accel_y: -0.927219,
+            accel_z: 9.803394,
+            gyro_x: 0.013744,
+            gyro_y: 0.007636,
+            gyro_z: -0.005803,
+            temperature: 27.97266,
+          },
+          {
+            id: 37,
+            timestamp: "2025-06-07T09:10:10",
+            accel_x: -0.01675,
+            accel_y: -0.921237,
+            accel_z: 9.780663,
+            gyro_x: 0.014661,
+            gyro_y: 0.007025,
+            gyro_z: -0.005803,
+            temperature: 27.96875,
+          },
+          {
+            id: 36,
+            timestamp: "2025-06-07T09:10:09",
+            accel_x: -0.020339,
+            accel_y: -0.915255,
+            accel_z: 9.820145,
+            gyro_x: 0.013744,
+            gyro_y: 0.00733,
+            gyro_z: -0.006109,
+            temperature: 27.97656,
+          },
+          {
+            id: 35,
+            timestamp: "2025-06-07T09:10:06",
+            accel_x: -0.013161,
+            accel_y: -0.921237,
+            accel_z: 9.809377,
+            gyro_x: 0.013439,
+            gyro_y: 0.007025,
+            gyro_z: -0.006414,
+            temperature: 27.9375,
+          },
+          {
+            id: 34,
+            timestamp: "2025-06-07T09:10:05",
+            accel_x: -0.019143,
+            accel_y: -0.927219,
+            accel_z: 9.826126,
+            gyro_x: 0.013439,
+            gyro_y: 0.00672,
+            gyro_z: -0.006414,
+            temperature: 27.94922,
+          },
+          {
+            id: 33,
+            timestamp: "2025-06-07T09:10:04",
+            accel_x: -0.015553,
+            accel_y: -0.92363,
+            accel_z: 9.805787,
+            gyro_x: 0.014355,
+            gyro_y: 0.00733,
+            gyro_z: -0.00672,
+            temperature: 27.97266,
+          },
+          {
+            id: 32,
+            timestamp: "2025-06-07T09:10:03",
+            accel_x: -0.021535,
+            accel_y: -0.92363,
+            accel_z: 9.781858,
+            gyro_x: 0.014661,
+            gyro_y: 0.007025,
+            gyro_z: -0.006109,
+            temperature: 28.00781,
+          },
+          {
+            id: 31,
+            timestamp: "2025-06-07T09:10:01",
+            accel_x: -0.020339,
+            accel_y: -0.928415,
+            accel_z: 9.830912,
+            gyro_x: 0.014355,
+            gyro_y: 0.00733,
+            gyro_z: -0.005803,
+            temperature: 27.97266,
+          },
+          {
+            id: 30,
+            timestamp: "2025-06-07T09:10:00",
+            accel_x: -0.028714,
+            accel_y: -0.930808,
+            accel_z: 9.805787,
+            gyro_x: 0.013744,
+            gyro_y: 0.007025,
+            gyro_z: -0.005803,
+            temperature: 27.92578,
+          },
+          {
+            id: 29,
+            timestamp: "2025-06-07T09:09:59",
+            accel_x: -0.019143,
+            accel_y: -0.917647,
+            accel_z: 9.795019,
+            gyro_x: 0.013744,
+            gyro_y: 0.007025,
+            gyro_z: -0.006109,
+            temperature: 27.94922,
+          },
+          {
+            id: 28,
+            timestamp: "2025-06-07T09:09:58",
+            accel_x: -0.011964,
+            accel_y: -0.924826,
+            accel_z: 9.830912,
+            gyro_x: 0.014661,
+            gyro_y: 0.00733,
+            gyro_z: -0.006109,
+            temperature: 27.97656,
+          },
+          {
+            id: 27,
+            timestamp: "2025-06-07T09:09:57",
+            accel_x: -0.025125,
+            accel_y: -0.932004,
+            accel_z: 9.835698,
+            gyro_x: 0.01405,
+            gyro_y: 0.007941,
+            gyro_z: -0.006109,
+            temperature: 27.92969,
+          },
+          {
+            id: 26,
+            timestamp: "2025-06-07T09:09:56",
+            accel_x: -0.013161,
+            accel_y: -0.917647,
+            accel_z: 9.832108,
+            gyro_x: 0.01405,
+            gyro_y: 0.007636,
+            gyro_z: -0.006109,
+            temperature: 27.95703,
+          },
+          {
+            id: 25,
+            timestamp: "2025-06-07T09:09:55",
+            accel_x: -0.021535,
+            accel_y: -0.93679,
+            accel_z: 9.824929,
+            gyro_x: 0.01405,
+            gyro_y: 0.007941,
+            gyro_z: -0.006414,
+            temperature: 27.98828,
+          },
+          {
+            id: 24,
+            timestamp: "2025-06-07T09:09:54",
+            accel_x: -0.025125,
+            accel_y: -0.922433,
+            accel_z: 9.798609,
+            gyro_x: 0.014661,
+            gyro_y: 0.007025,
+            gyro_z: -0.006109,
+            temperature: 27.94922,
+          },
+          {
+            id: 23,
+            timestamp: "2025-06-07T09:09:53",
+            accel_x: -0.017946,
+            accel_y: -0.929612,
+            accel_z: 9.792627,
+            gyro_x: 0.013744,
+            gyro_y: 0.007025,
+            gyro_z: -0.006414,
+            temperature: 27.99219,
+          },
+          {
+            id: 22,
+            timestamp: "2025-06-07T09:09:51",
+            accel_x: -0.021535,
+            accel_y: -0.927219,
+            accel_z: 9.835698,
+            gyro_x: 0.014661,
+            gyro_y: 0.007941,
+            gyro_z: -0.006109,
+            temperature: 27.94141,
+          },
+          {
+            id: 21,
+            timestamp: "2025-06-07T09:09:49",
+            accel_x: -0.01675,
+            accel_y: -0.918844,
+            accel_z: 9.824929,
+            gyro_x: 0.013744,
+            gyro_y: 0.007636,
+            gyro_z: -0.005192,
+            temperature: 27.96875,
+          },
+          {
+            id: 20,
+            timestamp: "2025-06-07T09:09:48",
+            accel_x: -0.023928,
+            accel_y: -0.922433,
+            accel_z: 9.789038,
+            gyro_x: 0.013744,
+            gyro_y: 0.00672,
+            gyro_z: -0.006109,
+            temperature: 27.99219,
+          },
+          {
+            id: 19,
+            timestamp: "2025-06-07T09:09:48",
+            accel_x: -0.025125,
+            accel_y: -0.946361,
+            accel_z: 9.826126,
+            gyro_x: 0.014355,
+            gyro_y: 0.007025,
+            gyro_z: -0.005803,
+            temperature: 28.00391,
+          },
+          {
+            id: 18,
+            timestamp: "2025-06-07T09:09:46",
+            accel_x: -0.020339,
+            accel_y: -0.918844,
+            accel_z: 9.790234,
+            gyro_x: 0.014966,
+            gyro_y: 0.00733,
+            gyro_z: -0.006109,
+            temperature: 27.96484,
+          },
+          {
+            id: 17,
+            timestamp: "2025-06-07T09:09:45",
+            accel_x: -0.026321,
+            accel_y: -0.942772,
+            accel_z: 9.809377,
+            gyro_x: 0.0281,
+            gyro_y: 0.00672,
+            gyro_z: -0.00672,
+            temperature: 27.96484,
+          },
+          {
+            id: 16,
+            timestamp: "2025-06-07T09:09:43",
+            accel_x: -0.013161,
+            accel_y: -0.935594,
+            accel_z: 9.80818,
+            gyro_x: 0.010996,
+            gyro_y: 0.007636,
+            gyro_z: -0.00672,
+            temperature: 27.95703,
+          },
+          {
+            id: 15,
+            timestamp: "2025-06-07T09:09:42",
+            accel_x: -0.028714,
+            accel_y: -0.961915,
+            accel_z: 9.839287,
+            gyro_x: 0.014966,
+            gyro_y: 0.007025,
+            gyro_z: -0.005803,
+            temperature: 27.98828,
+          },
+          {
+            id: 14,
+            timestamp: "2025-06-07T09:09:41",
+            accel_x: -0.021535,
+            accel_y: -0.917647,
+            accel_z: 9.797412,
+            gyro_x: 0.010385,
+            gyro_y: 0.007941,
+            gyro_z: -0.006414,
+            temperature: 27.9375,
+          },
+          {
+            id: 13,
+            timestamp: "2025-06-07T09:09:40",
+            accel_x: -0.020339,
+            accel_y: -0.967897,
+            accel_z: 9.816555,
+            gyro_x: 0.013744,
+            gyro_y: 0.00733,
+            gyro_z: -0.005192,
+            temperature: 27.98438,
+          },
+          {
+            id: 12,
+            timestamp: "2025-06-07T09:09:39",
+            accel_x: -0.019143,
+            accel_y: -0.967897,
+            accel_z: 9.786645,
+            gyro_x: 0.013744,
+            gyro_y: 0.007025,
+            gyro_z: -0.006109,
+            temperature: 27.98047,
+          },
+          {
+            id: 11,
+            timestamp: "2025-06-07T09:09:38",
+            accel_x: -0.028714,
+            accel_y: -0.964308,
+            accel_z: 9.77827,
+            gyro_x: 0.014355,
+            gyro_y: 0.007941,
+            gyro_z: -0.005803,
+            temperature: 27.95313,
+          },
+          {
+            id: 10,
+            timestamp: "2025-06-07T09:09:37",
+            accel_x: -0.021535,
+            accel_y: -0.984646,
+            accel_z: 9.823733,
+            gyro_x: 0.014355,
+            gyro_y: 0.007636,
+            gyro_z: -0.006109,
+            temperature: 27.99219,
+          },
+          {
+            id: 9,
+            timestamp: "2025-06-07T09:09:35",
+            accel_x: -0.020339,
+            accel_y: -0.975075,
+            accel_z: 9.774681,
+            gyro_x: 0.01405,
+            gyro_y: 0.007636,
+            gyro_z: -0.005803,
+            temperature: 27.98438,
+          },
+          {
+            id: 8,
+            timestamp: "2025-06-07T09:09:35",
+            accel_x: -0.0335,
+            accel_y: -0.976272,
+            accel_z: 9.817752,
+            gyro_x: 0.013744,
+            gyro_y: 0.007636,
+            gyro_z: -0.005803,
+            temperature: 27.97266,
+          },
+          {
+            id: 7,
+            timestamp: "2025-06-07T09:09:33",
+            accel_x: -0.023928,
+            accel_y: -0.977468,
+            accel_z: 9.820145,
+            gyro_x: 0.013744,
+            gyro_y: 0.00733,
+            gyro_z: -0.006109,
+            temperature: 27.98828,
+          },
+          {
+            id: 6,
+            timestamp: "2025-06-07T09:09:33",
+            accel_x: -0.022732,
+            accel_y: -0.978664,
+            accel_z: 9.802198,
+            gyro_x: 0.013439,
+            gyro_y: 0.007025,
+            gyro_z: -0.006414,
+            temperature: 27.99219,
+          },
+        ],
+      };
+
+      // Process data for bicep curl analysis
+      const data = rawData.items.reverse(); // Reverse to show chronological order
+
+      const processedData = data.map((item) => {
+        const magnitude = Math.sqrt(
+          item.accel_x ** 2 + item.accel_y ** 2 + item.accel_z ** 2
+        );
+        const gyroMagnitude = Math.sqrt(
+          item.gyro_x ** 2 + item.gyro_y ** 2 + item.gyro_z ** 2
+        );
+        // Bicep curls show different patterns - more gyroscope activity and varied accelerations
+        const isCurl = magnitude > 11 || gyroMagnitude > 0.5; // Different thresholds for arm movements
+
+        return {
+          ...item,
+          magnitude,
+          gyroMagnitude,
+          isCurl,
+          time: new Date(item.timestamp).toLocaleTimeString(),
+        };
+      });
+
+      // Create labels (time)
+      const labels = processedData.map((d) => d.time);
+
+      let chart;
+
+      function createChart(datasets, title) {
+        const ctx = document.getElementById("chart").getContext("2d");
+
+        if (chart) {
+          chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: datasets,
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: title,
+                font: { size: 18, weight: "bold" },
+                color: "#2c3e50",
+              },
+              legend: {
+                position: "top",
+                labels: {
+                  usePointStyle: true,
+                  font: { size: 12 },
+                },
+              },
+            },
+            scales: {
+              y: {
+                grid: { color: "rgba(0,0,0,0.1)" },
+                ticks: { font: { size: 11 } },
+              },
+              x: {
+                grid: { color: "rgba(0,0,0,0.1)" },
+                ticks: {
+                  font: { size: 10 },
+                  maxTicksLimit: 12,
+                },
+              },
+            },
+            elements: {
+              point: { radius: 3, hoverRadius: 6 },
+              line: { tension: 0.1 },
+            },
+          },
+        });
+      }
+
+      function showAccelerometer() {
+        const datasets = [
+          {
+            label: "Accel X (arm extension)",
+            data: processedData.map((d) => d.accel_x),
+            borderColor: "#e74c3c",
+            backgroundColor: "rgba(231, 76, 60, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Accel Y (lifting motion)",
+            data: processedData.map((d) => d.accel_y),
+            borderColor: "#f39c12",
+            backgroundColor: "rgba(243, 156, 18, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Accel Z (gravity/rotation)",
+            data: processedData.map((d) => d.accel_z),
+            borderColor: "#2ecc71",
+            backgroundColor: "rgba(46, 204, 113, 0.1)",
+            fill: false,
+          },
+        ];
+        createChart(
+          datasets,
+          "Accelerometer Data (m/s²) - Bicep Curl Motion Analysis"
+        );
+      }
+
+      function showGyroscope() {
+        const datasets = [
+          {
+            label: "Gyro X (elbow rotation)",
+            data: processedData.map((d) => d.gyro_x),
+            borderColor: "#9b59b6",
+            backgroundColor: "rgba(155, 89, 182, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Gyro Y (wrist twist)",
+            data: processedData.map((d) => d.gyro_y),
+            borderColor: "#3498db",
+            backgroundColor: "rgba(52, 152, 219, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Gyro Z (forearm rotation)",
+            data: processedData.map((d) => d.gyro_z),
+            borderColor: "#e67e22",
+            backgroundColor: "rgba(230, 126, 34, 0.1)",
+            fill: false,
+          },
+        ];
+        createChart(
+          datasets,
+          "Gyroscope Data (rad/s) - Arm Joint Rotation During Curls"
+        );
+      }
+
+      function showMagnitude() {
+        const datasets = [
+          {
+            label: "Movement Intensity",
+            data: processedData.map((d) => d.magnitude),
+            borderColor: "#e74c3c",
+            backgroundColor: "rgba(231, 76, 60, 0.2)",
+            fill: true,
+          },
+          {
+            label: "Curl Detection Threshold",
+            data: Array(processedData.length).fill(11),
+            borderColor: "#95a5a6",
+            backgroundColor: "transparent",
+            borderDash: [5, 5],
+            fill: false,
+          },
+        ];
+        createChart(
+          datasets,
+          "Movement Intensity Analysis - Bicep Curl Detection"
+        );
+      }
+
+      function showCurlPhases() {
+        const datasets = [
+          {
+            label: "Gyro Magnitude (rotation)",
+            data: processedData.map((d) => d.gyroMagnitude),
+            borderColor: "#9b59b6",
+            backgroundColor: "rgba(155, 89, 182, 0.2)",
+            fill: true,
+          },
+          {
+            label: "Y-axis (lift direction)",
+            data: processedData.map((d) => d.accel_y),
+            borderColor: "#f39c12",
+            backgroundColor: "rgba(243, 156, 18, 0.1)",
+            fill: false,
+          },
+          {
+            label: "Rotation Threshold",
+            data: Array(processedData.length).fill(0.5),
+            borderColor: "#95a5a6",
+            backgroundColor: "transparent",
+            borderDash: [3, 3],
+            fill: false,
+          },
+        ];
+        createChart(
+          datasets,
+          "Bicep Curl Phases - Concentric & Eccentric Motion"
+        );
+      }
+
+      function updateStats() {
+        const restCount = processedData.filter((d) => !d.isCurl).length;
+        const curlCount = processedData.filter((d) => d.isCurl).length;
+        const maxRotation = Math.max(
+          ...processedData.map((d) => d.gyroMagnitude)
+        ).toFixed(2);
+        const avgTemp = (
+          processedData.reduce((sum, d) => sum + d.temperature, 0) /
+          processedData.length
+        ).toFixed(1);
+
+        document.getElementById("restCount").textContent = restCount;
+        document.getElementById("curlCount").textContent = curlCount;
+        document.getElementById("maxRotation").textContent = maxRotation;
+        document.getElementById("avgTemp").textContent = avgTemp;
+      }
+
+      // Initialize
+      showAccelerometer();
+      updateStats();
+    </script>
+  </body>
+</html>
