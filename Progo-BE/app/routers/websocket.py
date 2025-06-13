@@ -5,7 +5,7 @@ import json
 import logging
 
 from ..database import get_db
-from ..websocket.manager import ConnectionManager
+from ..websocket.manager import websocket_manager
 from ..models.database import WorkoutSession
 from ..ml.workout_manager import WorkoutManager
 
@@ -13,15 +13,21 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Global instances
-connection_manager = ConnectionManager()
 workout_manager = WorkoutManager()
 
 
 @router.websocket("/ws/{device_id}")
 async def websocket_endpoint(websocket: WebSocket, device_id: str):
     """WebSocket endpoint for real-time communication with fitness devices"""
-    await connection_manager.connect(websocket, device_id)
-    logger.info(f"WebSocket connected for device: {device_id}")
+    # Extract client type from query params if available
+    client_info = {
+        "user_agent": websocket.headers.get("user-agent", "unknown"),
+        "origin": websocket.headers.get("origin", "unknown"),
+        "client_type": "esp32" if "ESP32" in websocket.headers.get("user-agent", "") else "frontend"
+    }
+    
+    await websocket_manager.connect(websocket, device_id, client_info)
+    logger.info(f"WebSocket connected for device: {device_id} (client: {client_info['client_type']})")
     
     try:
         while True:
@@ -33,11 +39,11 @@ async def websocket_endpoint(websocket: WebSocket, device_id: str):
             await handle_websocket_message(device_id, message)
             
     except WebSocketDisconnect:
-        connection_manager.disconnect(device_id)
+        websocket_manager.disconnect(websocket)
         logger.info(f"WebSocket disconnected for device: {device_id}")
     except Exception as e:
         logger.error(f"WebSocket error for device {device_id}: {str(e)}")
-        connection_manager.disconnect(device_id)
+        websocket_manager.disconnect(websocket)
 
 
 async def handle_websocket_message(device_id: str, message: Dict[str, Any]):
@@ -47,7 +53,7 @@ async def handle_websocket_message(device_id: str, message: Dict[str, Any]):
     try:
         if message_type == "ping":
             # Respond to ping with pong
-            await connection_manager.send_personal_message(
+            await websocket_manager.send_to_device(
                 device_id,
                 {"type": "pong", "timestamp": message.get("timestamp")}
             )
@@ -57,7 +63,7 @@ async def handle_websocket_message(device_id: str, message: Dict[str, Any]):
             exercise_type = message.get("exercise_type", "unknown")
             await workout_manager.start_detection(device_id, exercise_type)
             
-            await connection_manager.send_personal_message(
+            await websocket_manager.send_to_device(
                 device_id,
                 {
                     "type": "detection_started",
@@ -70,7 +76,7 @@ async def handle_websocket_message(device_id: str, message: Dict[str, Any]):
             # Stop rep detection for the device
             await workout_manager.stop_detection(device_id)
             
-            await connection_manager.send_personal_message(
+            await websocket_manager.send_to_device(
                 device_id,
                 {
                     "type": "detection_stopped",
@@ -81,13 +87,13 @@ async def handle_websocket_message(device_id: str, message: Dict[str, Any]):
         elif message_type == "get_status":
             # Send current workout status
             status = await get_device_status(device_id)
-            await connection_manager.send_personal_message(device_id, status)
+            await websocket_manager.send_to_device(device_id, status)
             
         elif message_type == "calibrate":
             # Calibrate rep detection
             await workout_manager.calibrate_detection(device_id)
             
-            await connection_manager.send_personal_message(
+            await websocket_manager.send_to_device(
                 device_id,
                 {
                     "type": "calibration_complete",
@@ -100,7 +106,7 @@ async def handle_websocket_message(device_id: str, message: Dict[str, Any]):
             
     except Exception as e:
         logger.error(f"Error handling message type {message_type} for device {device_id}: {str(e)}")
-        await connection_manager.send_personal_message(
+        await websocket_manager.send_to_device(
             device_id,
             {
                 "type": "error",
@@ -122,7 +128,7 @@ async def get_device_status(device_id: str) -> Dict[str, Any]:
             "device_id": device_id,
             "detection_active": is_detecting,
             "latest_detection": latest_detection,
-            "connected_devices": len(connection_manager.active_connections),
+            "connected_devices": len(websocket_manager.active_connections),
             "timestamp": "utcnow"
         }
     except Exception as e:
@@ -143,7 +149,7 @@ async def broadcast_rep_completed(device_id: str, rep_data: Dict[str, Any]):
         "data": rep_data,
         "timestamp": "utcnow"
     }
-    await connection_manager.broadcast_to_device(device_id, message)
+    await websocket_manager.broadcast_to_device(device_id, message)
 
 
 async def broadcast_set_completed(device_id: str, set_data: Dict[str, Any]):
@@ -154,7 +160,7 @@ async def broadcast_set_completed(device_id: str, set_data: Dict[str, Any]):
         "data": set_data,
         "timestamp": "utcnow"
     }
-    await connection_manager.broadcast_to_device(device_id, message)
+    await websocket_manager.broadcast_to_device(device_id, message)
 
 
 async def broadcast_workout_completed(device_id: str, workout_data: Dict[str, Any]):
@@ -165,7 +171,7 @@ async def broadcast_workout_completed(device_id: str, workout_data: Dict[str, An
         "data": workout_data,
         "timestamp": "utcnow"
     }
-    await connection_manager.broadcast_to_device(device_id, message)
+    await websocket_manager.broadcast_to_device(device_id, message)
 
 
 async def broadcast_form_warning(device_id: str, warning_data: Dict[str, Any]):
@@ -176,7 +182,7 @@ async def broadcast_form_warning(device_id: str, warning_data: Dict[str, Any]):
         "data": warning_data,
         "timestamp": "utcnow"
     }
-    await connection_manager.broadcast_to_device(device_id, message)
+    await websocket_manager.broadcast_to_device(device_id, message)
 
 
 # Export broadcast functions for use in other modules

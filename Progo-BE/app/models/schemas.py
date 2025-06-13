@@ -368,3 +368,25 @@ class RepTrainingDataResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Device Command Models
+class CommandRequest(BaseModel):
+    command: str = Field(..., description="Command to send to ESP32 device")
+    timestamp: Optional[datetime] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "command": "bicep",
+                "timestamp": "2024-01-01T12:00:00Z"
+            }
+        }
+
+
+class CommandResponse(BaseModel):
+    success: bool
+    message: str
+    device_id: str
+    command: str
+    timestamp: datetime

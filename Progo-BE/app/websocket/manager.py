@@ -178,6 +178,31 @@ class ConnectionManager:
         """Send personal message to a device (alias for send_to_device)."""
         await self.send_to_device(device_id, message)
     
+    async def send_command_to_device(self, device_id: str, command_data: dict) -> bool:
+        """Send command to specific ESP32 device if connected via WebSocket."""
+        try:
+            # Prepare command message in the required format
+            command_message = {
+                "type": "device_command",
+                "command": command_data.get("command"),
+                "timestamp": command_data.get("timestamp", datetime.now().isoformat())
+            }
+            
+            # Check if device is connected
+            if device_id in self.active_connections and self.active_connections[device_id]:
+                await self.send_to_device(device_id, command_message)
+                logger.info(f"Command '{command_data.get('command')}' sent to device {device_id}")
+                return True
+            else:
+                # Queue the command for when device connects
+                self.message_queue[device_id].append(command_message)
+                logger.warning(f"Device {device_id} not connected, command queued")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error sending command to device {device_id}: {e}")
+            return False
+
     def get_connection_count(self, device_id: str) -> int:
         """Get number of active connections for a device."""
         return len(self.active_connections.get(device_id, set()))

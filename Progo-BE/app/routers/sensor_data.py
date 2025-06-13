@@ -8,11 +8,12 @@ import re
 from app.database import get_sync_db
 from app.models.schemas import (
     SensorDataInput, SensorDataResponse, SensorDataQuery, 
-    APIResponse, PaginatedResponse
+    APIResponse, PaginatedResponse, CommandRequest, CommandResponse
 )
 from app.models.database import SensorReading, ExerciseSession, DeviceInfo, WorkoutSession
 from app.ml.inference import inference_engine
 from app.ml.workout_manager import WorkoutManager
+from app.websocket.manager import websocket_manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -513,4 +514,90 @@ async def get_registered_devices(db: Session = Depends(get_sync_db)):
         
     except Exception as e:
         logger.error(f"Error getting registered devices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/devices/{device_id}/command", response_model=CommandResponse)
+async def send_device_command(
+    device_id: str, 
+    command: CommandRequest,
+    db: Session = Depends(get_sync_db)
+):
+    """Send command to ESP32 device via WebSocket."""
+    try:
+        # Validate device_id format (MAC address pattern)
+        mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+        if not re.match(mac_pattern, device_id):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid device_id format. Expected MAC address format, got: {device_id}"
+            )
+        
+        # Validate command
+        valid_commands = ["bicep", "squat", "rest", "train_complete", "test", "info", "mag_off", "mag_on"]
+        if command.command not in valid_commands:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid command. Valid commands are: {', '.join(valid_commands)}"
+            )
+        
+        # Prepare command data
+        command_data = {
+            "command": command.command,
+            "timestamp": command.timestamp.isoformat() if command.timestamp else datetime.now().isoformat()
+        }
+        
+        # Send command via WebSocket manager
+        success = await websocket_manager.send_command_to_device(device_id, command_data)
+        
+        # Log the command attempt
+        logger.info(f"Command '{command.command}' {'sent' if success else 'queued'} for device {device_id}")
+        
+        return CommandResponse(
+            success=success,
+            message=f"Command '{command.command}' {'sent to' if success else 'queued for'} device {device_id}",
+            device_id=device_id,
+            command=command.command,
+            timestamp=datetime.now()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending command to device {device_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/devices/{device_id}/websocket-status")
+async def get_websocket_status(device_id: str):
+    """Get WebSocket connection status for a device."""
+    try:
+        # Validate device_id format (MAC address pattern)
+        mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+        if not re.match(mac_pattern, device_id):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid device_id format. Expected MAC address format, got: {device_id}"
+            )
+        
+        # Get connection status from WebSocket manager
+        connection_count = websocket_manager.get_connection_count(device_id)
+        is_connected = connection_count > 0
+        
+        # Get connection statistics
+        stats = websocket_manager.get_connection_stats()
+        
+        return {
+            "device_id": device_id,
+            "is_connected": is_connected,
+            "connection_count": connection_count,
+            "queued_messages": len(websocket_manager.message_queue.get(device_id, [])),
+            "global_stats": stats,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting WebSocket status for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

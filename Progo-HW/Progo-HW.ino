@@ -5,25 +5,35 @@
 #include <Adafruit_LSM6DSOX.h>
 #include <Adafruit_LIS3MDL.h>
 #include <Adafruit_Sensor.h>
+#include <WebSocketsClient.h>  // 🆕 ADD THIS LIBRARY
 
 const char* ssid = "Kamsi";
 const char* password = "nopassword";
 
 const char* apiEndpoint = "http://render-progo.onrender.com/api/v1/sensor-data/";
 const char* apiEndpointHTTPS = "https://render-progo.onrender.com/api/v1/sensor-data/";
-bool useHTTPS = false; 
+bool useHTTPS = false;
 
-String deviceId = "";   
-String deviceInfo = "";  
+// 🆕 WebSocket Configuration
+const char* wsHost = "render-progo.onrender.com";
+const int wsPort = 443;  // HTTPS port
+const char* wsPath = "/ws";
+WebSocketsClient webSocket;
+bool wsConnected = false;
+unsigned long lastWSReconnect = 0;
+const unsigned long wsReconnectInterval = 5000;  // Try reconnect every 5 seconds
+
+String deviceId = "";
+String deviceInfo = "";
 
 // Exercise type for training data collection set default to resting
-String currentExercise = "resting";  
+String currentExercise = "resting";
 
 // Sensors
 Adafruit_LSM6DSOX lsm6ds;
 Adafruit_LIS3MDL lis3mdl;
 bool magnetometer_available = false;
-bool magnetometer_enabled = true; 
+bool magnetometer_enabled = true;
 
 // Data collection timing
 unsigned long lastSensorRead = 0;
@@ -34,6 +44,10 @@ const unsigned long sendInterval = 1000;  // Send data every 1000ms (1Hz)
 
 unsigned long lastMagRead = 0;
 const unsigned long magInterval = 500;  // Read magnetometer less frequently (2Hz)
+
+// 🆕 WebSocket heartbeat
+unsigned long lastHeartbeat = 0;
+const unsigned long heartbeatInterval = 30000;  // Send heartbeat every 30 seconds
 
 // Data storage
 struct SensorData {
@@ -50,7 +64,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) delay(10);
 
-  Serial.println("🎉 ESP32 S3 IMU Data Collection - FIXED I2C ISSUES!");
+  Serial.println("🎉 ESP32 S3 IMU Data Collection - WITH WEBSOCKET SUPPORT!");
   Serial.println("============================================================");
 
   // Initialize I2C with custom settings
@@ -69,9 +83,12 @@ void setup() {
   // 🆔 EXTRACT AND DISPLAY REAL DEVICE ID
   extractDeviceId();
 
+  // 🆕 Initialize WebSocket
+  initializeWebSocket();
+
   Serial.println("============================================================");
   Serial.println("✅ Setup complete! Starting data collection...");
-  Serial.println("🏋️‍♂️ Commands via Serial:");
+  Serial.println("🏋️‍♂️ Commands via Serial OR WebSocket:");
   Serial.println("  Type 'bicep' - Start bicep curl data collection");
   Serial.println("  Type 'squat' - Start squat data collection");
   Serial.println("  Type 'rest' - Stop exercise data collection");
@@ -87,6 +104,18 @@ void setup() {
 
 void loop() {
   unsigned long currentTime = millis();
+
+  // 🆕 Handle WebSocket events
+  webSocket.loop();
+
+  // 🆕 Auto-reconnect WebSocket if disconnected
+  handleWebSocketReconnect();
+
+  // 🆕 Send heartbeat to keep connection alive
+  if (wsConnected && currentTime - lastHeartbeat >= heartbeatInterval) {
+    sendHeartbeat();
+    lastHeartbeat = currentTime;
+  }
 
   // Check for commands via Serial
   checkSerialCommands();
@@ -104,11 +133,200 @@ void loop() {
     } else {
       Serial.println("📶 WiFi disconnected, attempting reconnection...");
       connectToWiFi();
+      // 🆕 Reconnect WebSocket after WiFi reconnection
+      initializeWebSocket();
     }
     lastDataSend = currentTime;
   }
 
   delay(10);
+}
+
+// 🆕 WebSocket Initialization
+void initializeWebSocket() {
+  Serial.println("🔌 Initializing WebSocket connection...");
+
+  // Configure WebSocket
+  webSocket.begin(wsHost, wsPort, wsPath, "wss");  // Use WSS for secure connection
+  webSocket.onEvent(webSocketEvent);
+  webSocket.setReconnectInterval(5000);       // Auto-reconnect every 5 seconds
+  webSocket.enableHeartbeat(15000, 3000, 2);  // Enable built-in heartbeat
+
+  Serial.printf("🔗 Connecting to WebSocket: wss://%s:%d%s\n", wsHost, wsPort, wsPath);
+}
+
+// 🆕 WebSocket Event Handler
+void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+  switch (type) {
+    case WStype_DISCONNECTED:
+      Serial.println("🔌 WebSocket Disconnected");
+      wsConnected = false;
+      break;
+
+    case WStype_CONNECTED:
+      Serial.printf("🔌 WebSocket Connected to: %s\n", payload);
+      wsConnected = true;
+
+      // 🆕 Send device identification on connect
+      sendDeviceIdentification();
+      break;
+
+    case WStype_TEXT:
+      Serial.printf("📨 WebSocket Message Received: %s\n", payload);
+      handleWebSocketCommand((char*)payload);
+      break;
+
+    case WStype_BIN:
+      Serial.printf("📨 WebSocket Binary Received: %u bytes\n", length);
+      break;
+
+    case WStype_ERROR:
+      Serial.printf("❌ WebSocket Error: %s\n", payload);
+      break;
+
+    case WStype_FRAGMENT_TEXT_START:
+    case WStype_FRAGMENT_BIN_START:
+    case WStype_FRAGMENT:
+    case WStype_FRAGMENT_FIN:
+      // Handle fragmented messages if needed
+      break;
+  }
+}
+
+// 🆕 Send Device Identification to Backend
+void sendDeviceIdentification() {
+  DynamicJsonDocument doc(512);
+  doc["type"] = "device_connect";
+  doc["device_id"] = deviceId;
+  doc["device_info"] = deviceInfo;
+  doc["capabilities"] = "imu_9dof";
+  doc["firmware_version"] = "1.0.0";
+  doc["timestamp"] = millis();
+
+  String message;
+  serializeJson(doc, message);
+
+  webSocket.sendTXT(message);
+  Serial.println("🆔 Sent device identification to backend");
+}
+
+// 🆕 Handle WebSocket Commands from Backend
+void handleWebSocketCommand(String message) {
+  DynamicJsonDocument doc(1024);
+  DeserializationError error = deserializeJson(doc, message);
+
+  if (error) {
+    Serial.println("❌ Failed to parse WebSocket message");
+    return;
+  }
+
+  // Check if this is a device command
+  if (doc["type"] == "device_command") {
+    String command = doc["command"];
+    String timestamp = doc["timestamp"] | "";
+
+    Serial.printf("🎮 Received command from backend: %s\n", command.c_str());
+
+    // Process the command (reuse existing logic!)
+    bool success = processCommand(command);
+
+    // 🆕 Send acknowledgment back to backend
+    sendCommandAcknowledgment(command, success, timestamp);
+  }
+}
+
+// 🆕 Process Command (extracted from checkSerialCommands)
+bool processCommand(String command) {
+  command.trim();
+  command.toLowerCase();
+
+  if (command == "bicep") {
+    currentExercise = "bicep_curl";
+    Serial.println("🏋️‍♂️ Now collecting BICEP CURL data for device: " + deviceId);
+    return true;
+  } else if (command == "squat") {
+    currentExercise = "squat";
+    Serial.println("🦵 Now collecting SQUAT data for device: " + deviceId);
+    return true;
+  } else if (command == "rest") {
+    currentExercise = "resting";
+    Serial.println("😴 Now collecting RESTING data for device: " + deviceId);
+    return true;
+  } else if (command == "test") {
+    Serial.println("🧪 Testing API connection...");
+    testAPIConnection();
+    return true;
+  } else if (command == "info") {
+    showDeviceInfo();
+    return true;
+  } else if (command == "mag_off") {
+    magnetometer_enabled = false;
+    Serial.println("📴 Magnetometer disabled - using 6-DOF only");
+    return true;
+  } else if (command == "mag_on") {
+    magnetometer_enabled = true;
+    Serial.println("📡 Magnetometer enabled");
+    return true;
+  } else if (command == "train_complete") {
+    Serial.println("🎓 Training completed signal received");
+    return true;
+  } else {
+    Serial.println("❌ Unknown command: " + command);
+    return false;
+  }
+}
+
+// 🆕 Send Command Acknowledgment to Backend
+void sendCommandAcknowledgment(String command, bool success, String originalTimestamp) {
+  if (!wsConnected) return;
+
+  DynamicJsonDocument doc(512);
+  doc["type"] = "command_ack";
+  doc["device_id"] = deviceId;
+  doc["command"] = command;
+  doc["status"] = success ? "executed" : "failed";
+  doc["timestamp"] = millis();
+  doc["original_timestamp"] = originalTimestamp;
+  doc["current_exercise"] = currentExercise;
+
+  String message;
+  serializeJson(doc, message);
+
+  webSocket.sendTXT(message);
+  Serial.printf("📤 Sent command acknowledgment: %s -> %s\n", command.c_str(), success ? "executed" : "failed");
+}
+
+// 🆕 Handle WebSocket Reconnection
+void handleWebSocketReconnect() {
+  if (!wsConnected && WiFi.status() == WL_CONNECTED) {
+    unsigned long currentTime = millis();
+    if (currentTime - lastWSReconnect >= wsReconnectInterval) {
+      Serial.println("🔄 Attempting WebSocket reconnection...");
+      webSocket.disconnect();
+      delay(100);
+      initializeWebSocket();
+      lastWSReconnect = currentTime;
+    }
+  }
+}
+
+// 🆕 Send Heartbeat to Keep Connection Alive
+void sendHeartbeat() {
+  if (!wsConnected) return;
+
+  DynamicJsonDocument doc(256);
+  doc["type"] = "heartbeat";
+  doc["device_id"] = deviceId;
+  doc["timestamp"] = millis();
+  doc["uptime"] = millis() / 1000;
+  doc["free_heap"] = ESP.getFreeHeap();
+  doc["current_exercise"] = currentExercise;
+
+  String message;
+  serializeJson(doc, message);
+
+  webSocket.sendTXT(message);
+  Serial.println("💓 Sent heartbeat");
 }
 
 void extractDeviceId() {
@@ -133,30 +351,11 @@ void extractDeviceId() {
 void checkSerialCommands() {
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
-    command.trim();
-    command.toLowerCase();
 
-    if (command == "bicep") {
-      currentExercise = "bicep_curl";
-      Serial.println("🏋️‍♂️ Now collecting BICEP CURL data for device: " + deviceId);
-    } else if (command == "squat") {
-      currentExercise = "squat";
-      Serial.println("🦵 Now collecting SQUAT data for device: " + deviceId);
-    } else if (command == "rest") {
-      currentExercise = "resting";
-      Serial.println("😴 Now collecting RESTING data for device: " + deviceId);
-    } else if (command == "test") {
-      Serial.println("🧪 Testing API connection...");
-      testAPIConnection();
-    } else if (command == "info") {
-      showDeviceInfo();
-    } else if (command == "mag_off") {
-      magnetometer_enabled = false;
-      Serial.println("📴 Magnetometer disabled - using 6-DOF only");
-    } else if (command == "mag_on") {
-      magnetometer_enabled = true;
-      Serial.println("📡 Magnetometer enabled");
-    } else {
+    // 🆕 Use the same command processing function
+    bool success = processCommand(command);
+
+    if (!success) {
       Serial.println("❌ Unknown command. Use: bicep, squat, rest, test, info, mag_off, mag_on");
     }
   }
@@ -169,6 +368,7 @@ void showDeviceInfo() {
   Serial.println("   WiFi Status: " + String(WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected"));
   Serial.println("   IP Address: " + WiFi.localIP().toString());
   Serial.println("   Signal Strength: " + String(WiFi.RSSI()) + " dBm");
+  Serial.println("   WebSocket Status: " + String(wsConnected ? "Connected" : "Disconnected"));  // 🆕
   Serial.println("   Magnetometer Available: " + String(magnetometer_available ? "Yes" : "No"));
   Serial.println("   Magnetometer Enabled: " + String(magnetometer_enabled ? "Yes" : "No"));
   Serial.println("   Using: " + String(useHTTPS ? "HTTPS" : "HTTP"));
@@ -311,10 +511,11 @@ void readSensorData() {
 
   currentData.timestamp = millis();
 
-  // Print data with device ID and current exercise type
-  Serial.printf("[%s | %s] A:%.2f,%.2f,%.2f G:%.2f,%.2f,%.2f T:%.1f°C",
+  // Print data with device ID, current exercise type, and WebSocket status
+  Serial.printf("[%s | %s | WS:%s] A:%.2f,%.2f,%.2f G:%.2f,%.2f,%.2f T:%.1f°C",
                 deviceId.c_str(),
                 currentExercise.c_str(),
+                wsConnected ? "✓" : "✗",  // 🆕 WebSocket status indicator
                 currentData.accel_x, currentData.accel_y, currentData.accel_z,
                 currentData.gyro_x, currentData.gyro_y, currentData.gyro_z,
                 currentData.temperature);
