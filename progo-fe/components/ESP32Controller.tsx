@@ -297,67 +297,139 @@ export default function ESP32Controller() {
   const trainBicepModel = async () => {
     if (!isConnected || trainingStatus.is_training) return;
 
-    setTrainingStatus({ is_training: true, message: "Starting data collection for training..." });
+    console.log("🔍 Starting model training process...");
+
+    // Check if we have sufficient samples in the database
+    const totalSamples = collectedSamples.rest + collectedSamples.bicep_curl;
+    const minimumSamples = 30;
+    
+    console.log(`📊 Sample counts - Rest: ${collectedSamples.rest}, Bicep: ${collectedSamples.bicep_curl}, Total: ${totalSamples}`);
+    
+    if (totalSamples < minimumSamples) {
+      console.log(`❌ Insufficient samples: ${totalSamples} < ${minimumSamples}`);
+      setTrainingStatus({
+        is_training: false,
+        message: `Need more samples for training. Current: ${totalSamples}, Required: ${minimumSamples}+`
+      });
+      return;
+    }
+
+    // Check for balanced dataset (both rest and bicep samples)
+    if (collectedSamples.rest < 10 || collectedSamples.bicep_curl < 10) {
+      console.log(`❌ Unbalanced dataset - Rest: ${collectedSamples.rest}, Bicep: ${collectedSamples.bicep_curl}`);
+      setTrainingStatus({
+        is_training: false,
+        message: `Need balanced data. Rest: ${collectedSamples.rest}, Bicep: ${collectedSamples.bicep_curl} (min 10 each)`
+      });
+      return;
+    }
+
+    console.log(`✅ Starting training with ${totalSamples} samples`);
+    setTrainingStatus({ 
+      is_training: true, 
+      message: `Training model using ${totalSamples} existing samples...` 
+    });
     setTrainingProgress(0);
-    setTrainingTimeLeft(15); // 15 seconds for training data collection
+    setTrainingTimeLeft(0);
     
     try {
-      // Step 1: Start bicep data collection
-      await sendCommand("bicep");
+      const trainingRequest = {
+        model_name: "bicep_curl_classifier",
+        model_type: "random_forest",
+        device_id: DEVICE_ID,
+      };
       
-      // Step 2: 15-second data collection with progress bar
-      const interval = setInterval(() => {
-        setTrainingProgress((prev) => {
-          const newProgress = prev + 6.67; // 6.67% per second for 15 seconds
-          return newProgress >= 100 ? 100 : newProgress;
-        });
+      console.log("🚀 Sending training request:", trainingRequest);
+      console.log("📡 Training endpoint:", `${API_BASE_URL}/ml/train`);
 
-        setTrainingTimeLeft((prev) => {
-          const newTime = prev - 1;
-          if (newTime <= 0) {
-            clearInterval(interval);
-            return 0;
-          }
-          return newTime;
-        });
-      }, 1000);
-
-      // Step 3: Wait for data collection to complete
-      await new Promise(resolve => setTimeout(resolve, 15000));
-      
-      // Step 4: Stop data collection
-      await sendCommand("rest");
-      
-      // Step 5: Start ML training on fresh data
-      setTrainingStatus({ is_training: true, message: "Training model on collected data..." });
-      setTrainingProgress(0);
-      setTrainingTimeLeft(0);
-      
+      // Train ML model directly on existing database samples
       const response = await fetch(`${API_BASE_URL}/ml/train`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model_name: "bicep_curl_classifier",
-          model_type: "random_forest",
-          device_id: DEVICE_ID,
-        }),
+        body: JSON.stringify(trainingRequest),
       });
 
+      console.log(`📥 Training response status: ${response.status}`);
+      
       if (response.ok) {
         const result = await response.json();
-        setTrainingStatus({
-          is_training: false,
-          message: "Model training completed successfully!",
-          accuracy: result.data?.validation_accuracy,
-          training_samples: result.data?.training_samples
-        });
+        console.log("✅ Training response:", result);
+        
+        // Check if training was actually started
+        if (result.success && result.message.includes("started")) {
+          console.log("🔄 Training started in background, waiting for completion...");
+          
+          // Poll for completion by checking models endpoint
+          let attempts = 0;
+          const maxAttempts = 24; // 2 minutes with 5-second intervals
+          
+          const pollForCompletion = async () => {
+            try {
+              const modelsResponse = await fetch(`${API_BASE_URL}/ml/models?model_name=bicep_curl_classifier&active_only=true`);
+              if (modelsResponse.ok) {
+                const models = await modelsResponse.json();
+                console.log(`🔍 Polling attempt ${attempts + 1}/${maxAttempts}, found ${models.length} active models`);
+                
+                if (models.length > 0 && models[0].validation_accuracy) {
+                  const trainedModel = models[0];
+                  console.log("🎉 Training completed!", trainedModel);
+                  
+                  setTrainingStatus({
+                    is_training: false,
+                    message: `Model trained successfully on ${trainedModel.training_samples || totalSamples} samples!`,
+                    accuracy: trainedModel.validation_accuracy,
+                    training_samples: trainedModel.training_samples
+                  });
+                  return;
+                }
+              }
+              
+              attempts++;
+              if (attempts < maxAttempts) {
+                setTimeout(pollForCompletion, 5000); // Poll every 5 seconds
+              } else {
+                console.log("⏰ Polling timeout, training may still be in progress");
+                setTrainingStatus({
+                  is_training: false,
+                  message: "Training started but completion not confirmed. Check backend logs."
+                });
+              }
+            } catch (pollError) {
+              console.error("❌ Error during polling:", pollError);
+              attempts++;
+              if (attempts < maxAttempts) {
+                setTimeout(pollForCompletion, 5000);
+              }
+            }
+          };
+          
+          // Start polling
+          setTimeout(pollForCompletion, 5000);
+        } else {
+          setTrainingStatus({
+            is_training: false,
+            message: `Training response: ${result.message}`,
+            accuracy: result.data?.validation_accuracy,
+            training_samples: result.data?.training_samples
+          });
+        }
       } else {
-        const error = await response.json();
+        const errorText = await response.text();
+        console.error("❌ Training request failed:", response.status, errorText);
+        
+        let errorMessage = "Unknown error";
+        try {
+          const error = JSON.parse(errorText);
+          errorMessage = error.detail || error.message || errorText;
+        } catch {
+          errorMessage = errorText;
+        }
+        
         setTrainingStatus({
           is_training: false,
-          message: `Training failed: ${error.detail || "Unknown error"}`
+          message: `Training failed (${response.status}): ${errorMessage}`
         });
       }
       
@@ -365,6 +437,7 @@ export default function ESP32Controller() {
       setTimeout(fetchStatus, 2000);
       
     } catch (error) {
+      console.error("❌ Training error:", error);
       setTrainingStatus({
         is_training: false,
         message: `Training error: ${error instanceof Error ? error.message : "Unknown error"}`
@@ -537,7 +610,7 @@ export default function ESP32Controller() {
             ></div>
           </div>
           <p className="text-gray-400 text-sm mb-4">
-            15-second bicep curl data collection followed by automatic model training.
+            Train ML model using existing database samples. Requires 30+ total samples with balanced rest/bicep data.
           </p>
           <div className="space-y-4">
             <div className="text-center">
@@ -561,29 +634,35 @@ export default function ESP32Controller() {
             
             <button
               onClick={trainBicepModel}
-              disabled={!isConnected || trainingStatus.is_training}
+              disabled={!isConnected || trainingStatus.is_training || (collectedSamples.rest + collectedSamples.bicep_curl) < 30}
               className={`w-full py-2 px-3 rounded text-sm font-medium transition-colors ${
-                !isConnected || trainingStatus.is_training
+                !isConnected || trainingStatus.is_training || (collectedSamples.rest + collectedSamples.bicep_curl) < 30
                   ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                   : "bg-purple-600 hover:bg-purple-700 text-white"
               }`}
             >
-              {trainingStatus.is_training ? (
-                trainingTimeLeft > 0 ? `Collecting Data (${trainingTimeLeft}s)` : "Training Model..."
-              ) : "Train Bicep Model"}
+              {trainingStatus.is_training ? "Training Model..." : "Train Bicep Model"}
             </button>
             
-            {trainingStatus.is_training && trainingTimeLeft > 0 && (
-              <div className="space-y-3">
-                <div className="w-full bg-gray-800 rounded-full h-2">
-                  <div
-                    className="bg-purple-500 h-2 rounded-full transition-all duration-1000"
-                    style={{ width: `${trainingProgress}%` }}
-                  />
+            {(collectedSamples.rest + collectedSamples.bicep_curl) < 30 && (
+              <div className="text-center">
+                <div className="text-xs text-yellow-400">
+                  Need {30 - (collectedSamples.rest + collectedSamples.bicep_curl)} more samples
                 </div>
-                <p className="text-center text-gray-400 text-xs">
-                  Perform bicep curls now! {trainingTimeLeft}s remaining
-                </p>
+                <div className="text-xs text-gray-500">
+                  Current: {collectedSamples.rest} rest + {collectedSamples.bicep_curl} bicep = {collectedSamples.rest + collectedSamples.bicep_curl} total
+                </div>
+              </div>
+            )}
+            
+            {(collectedSamples.rest + collectedSamples.bicep_curl) >= 30 && !trainingStatus.is_training && (
+              <div className="text-center">
+                <div className="text-xs text-green-400">
+                  Ready to train! {collectedSamples.rest + collectedSamples.bicep_curl} samples available
+                </div>
+                <div className="text-xs text-gray-500">
+                  {collectedSamples.rest} rest + {collectedSamples.bicep_curl} bicep samples
+                </div>
               </div>
             )}
           </div>
