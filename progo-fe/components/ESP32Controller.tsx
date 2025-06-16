@@ -295,11 +295,44 @@ export default function ESP32Controller() {
   };
 
   const trainBicepModel = async () => {
-    if (!isConnected) return;
+    if (!isConnected || trainingStatus.is_training) return;
 
-    setTrainingStatus({ is_training: true, message: "Starting model training..." });
+    setTrainingStatus({ is_training: true, message: "Starting data collection for training..." });
+    setTrainingProgress(0);
+    setTrainingTimeLeft(15); // 15 seconds for training data collection
     
     try {
+      // Step 1: Start bicep data collection
+      await sendCommand("bicep");
+      
+      // Step 2: 15-second data collection with progress bar
+      const interval = setInterval(() => {
+        setTrainingProgress((prev) => {
+          const newProgress = prev + 6.67; // 6.67% per second for 15 seconds
+          return newProgress >= 100 ? 100 : newProgress;
+        });
+
+        setTrainingTimeLeft((prev) => {
+          const newTime = prev - 1;
+          if (newTime <= 0) {
+            clearInterval(interval);
+            return 0;
+          }
+          return newTime;
+        });
+      }, 1000);
+
+      // Step 3: Wait for data collection to complete
+      await new Promise(resolve => setTimeout(resolve, 15000));
+      
+      // Step 4: Stop data collection
+      await sendCommand("rest");
+      
+      // Step 5: Start ML training on fresh data
+      setTrainingStatus({ is_training: true, message: "Training model on collected data..." });
+      setTrainingProgress(0);
+      setTrainingTimeLeft(0);
+      
       const response = await fetch(`${API_BASE_URL}/ml/train`, {
         method: "POST",
         headers: {
@@ -327,6 +360,10 @@ export default function ESP32Controller() {
           message: `Training failed: ${error.detail || "Unknown error"}`
         });
       }
+      
+      // Refresh status to update sample counts
+      setTimeout(fetchStatus, 2000);
+      
     } catch (error) {
       setTrainingStatus({
         is_training: false,
@@ -499,6 +536,9 @@ export default function ESP32Controller() {
               }`}
             ></div>
           </div>
+          <p className="text-gray-400 text-sm mb-4">
+            15-second bicep curl data collection followed by automatic model training.
+          </p>
           <div className="space-y-4">
             <div className="text-center">
               <div className="text-xs text-gray-400 mb-2">Training Status</div>
@@ -521,19 +561,29 @@ export default function ESP32Controller() {
             
             <button
               onClick={trainBicepModel}
-              disabled={!isConnected || trainingStatus.is_training || collectedSamples.rest < 50 || collectedSamples.bicep_curl < 50}
+              disabled={!isConnected || trainingStatus.is_training}
               className={`w-full py-2 px-3 rounded text-sm font-medium transition-colors ${
-                !isConnected || trainingStatus.is_training || collectedSamples.rest < 50 || collectedSamples.bicep_curl < 50
+                !isConnected || trainingStatus.is_training
                   ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                   : "bg-purple-600 hover:bg-purple-700 text-white"
               }`}
             >
-              {trainingStatus.is_training ? "Training..." : "Train Bicep Model"}
+              {trainingStatus.is_training ? (
+                trainingTimeLeft > 0 ? `Collecting Data (${trainingTimeLeft}s)` : "Training Model..."
+              ) : "Train Bicep Model"}
             </button>
             
-            {(collectedSamples.rest < 50 || collectedSamples.bicep_curl < 50) && (
-              <div className="text-xs text-yellow-400 text-center">
-                Need 50+ samples each (rest & bicep)
+            {trainingStatus.is_training && trainingTimeLeft > 0 && (
+              <div className="space-y-3">
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div
+                    className="bg-purple-500 h-2 rounded-full transition-all duration-1000"
+                    style={{ width: `${trainingProgress}%` }}
+                  />
+                </div>
+                <p className="text-center text-gray-400 text-xs">
+                  Perform bicep curls now! {trainingTimeLeft}s remaining
+                </p>
               </div>
             )}
           </div>
