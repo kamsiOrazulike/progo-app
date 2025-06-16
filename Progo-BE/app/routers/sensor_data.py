@@ -60,6 +60,7 @@ async def receive_sensor_data(
             gyro_z=sensor_data.gyroscope.z,
             magnetometer_available=sensor_data.magnetometer_available,
             temperature=sensor_data.temperature,
+            exercise_type=sensor_data.exercise_type,  # Store exercise type in database
             session_id=session_id
         )
         
@@ -138,6 +139,7 @@ async def receive_sensor_data_batch(
                 gyro_z=sensor_data.gyroscope.z,
                 magnetometer_available=sensor_data.magnetometer_available,
                 temperature=sensor_data.temperature,
+                exercise_type=sensor_data.exercise_type,  # Store exercise type in database
                 session_id=session_id
             )
             
@@ -457,28 +459,46 @@ async def get_exercise_statistics(
             SensorReading.timestamp >= recent_cutoff
         ).count()
         
-        # For now, return mock data based on device state
+        # Get current exercise state from memory (for display purposes)
         current_exercise = device_exercise_states.get(device_id, "resting")
         
-        # Estimate sample counts (this will be improved when we have proper storage)
+        # Get actual sample counts from database by exercise type
         total_readings = db.query(SensorReading).filter(
             SensorReading.device_id == device_id
         ).count()
         
-        # Mock exercise distribution - this is a temporary solution
-        # In reality, you'd count actual labeled data
-        estimated_rest = int(total_readings * 0.6)  # Assume 60% rest
-        estimated_bicep = int(total_readings * 0.4)  # Assume 40% exercise
+        # Count actual labeled samples by exercise type
+        rest_count = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id,
+            SensorReading.exercise_type.in_(["rest", "resting"])
+        ).count()
+        
+        bicep_count = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id,
+            SensorReading.exercise_type.in_(["bicep_curl", "bicep"])
+        ).count()
+        
+        squat_count = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id,
+            SensorReading.exercise_type == "squat"
+        ).count()
+        
+        unlabeled_count = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id,
+            SensorReading.exercise_type.is_(None)
+        ).count()
         
         return {
             "device_id": device_id,
             "current_exercise": current_exercise,
             "total_readings": total_readings,
             "exercise_samples": {
-                "rest": estimated_rest,
-                "resting": estimated_rest,  # Alternative name
-                "bicep_curl": estimated_bicep,
-                "bicep": estimated_bicep  # Alternative name
+                "rest": rest_count,
+                "resting": rest_count,  # Alternative name for backward compatibility
+                "bicep_curl": bicep_count,
+                "bicep": bicep_count,  # Alternative name for backward compatibility
+                "squat": squat_count,
+                "unlabeled": unlabeled_count
             },
             "recent_readings_1h": recent_readings,
             "last_updated": datetime.now().isoformat()

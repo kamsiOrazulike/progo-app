@@ -46,6 +46,9 @@ class SensorReading(Base):
     # Additional sensor data
     temperature = Column(Float, nullable=True)
     
+    # Exercise type for training data collection
+    exercise_type = Column(String, nullable=True, index=True)  # 'resting', 'bicep_curl', 'squat', etc.
+    
     # Foreign key to exercise session
     session_id = Column(Integer, ForeignKey("exercise_sessions.id"), nullable=True)
     session = relationship("ExerciseSession", back_populates="readings")

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // components/ESP32Controller.tsx
 "use client";
 
@@ -105,42 +106,69 @@ export default function ESP32Controller() {
       }
       setCurrentWorkout(workoutData);
 
-      // Fetch collected samples count
+      // Fetch collected samples count using the new exercise statistics endpoint
       try {
-        const samplesResponse = await fetch(`${API_BASE_URL}/sensor-data/latest/${DEVICE_ID}?count=1000`);
-        if (samplesResponse.ok) {
-          const samplesData = await samplesResponse.json();
-          console.log(`Fetched ${samplesData.length} sensor readings for sample counting`);
+        const exerciseStatsResponse = await fetch(`${API_BASE_URL}/sensor-data/devices/${DEVICE_ID}/exercise-stats`);
+        if (exerciseStatsResponse.ok) {
+          const exerciseStats = await exerciseStatsResponse.json();
+          console.log('Exercise statistics:', exerciseStats);
           
-          // Count samples by exercise_type (with fallback for old data)
-          const restCount = samplesData.filter((s: any) => 
-            s.exercise_type === "resting" || s.exercise_type === "rest"
-          ).length;
-          const bicepCount = samplesData.filter((s: any) => 
-            s.exercise_type === "bicep_curl" || s.exercise_type === "bicep"
-          ).length;
+          // Use the exercise samples from the statistics endpoint
+          setCollectedSamples({
+            rest: exerciseStats.exercise_samples?.rest || exerciseStats.exercise_samples?.resting || 0,
+            bicep_curl: exerciseStats.exercise_samples?.bicep_curl || exerciseStats.exercise_samples?.bicep || 0
+          });
           
-          console.log(`Sample counts - Rest: ${restCount}, Bicep: ${bicepCount}`);
-          setCollectedSamples({ rest: restCount, bicep_curl: bicepCount });
-          
-          // Update device status to reflect we have data
-          if (!deviceData) {
+          // Update device status with real data
+          if (!deviceData && exerciseStats.total_readings > 0) {
             deviceData = {
               device_id: DEVICE_ID,
-              is_online: samplesData.length > 0,
-              recent_readings_5min: samplesData.length,
-              total_readings: samplesData.length,
-              ready_for_prediction: samplesData.length > 0
+              is_online: exerciseStats.total_readings > 0,
+              recent_readings_5min: exerciseStats.recent_readings_1h || 0,
+              total_readings: exerciseStats.total_readings,
+              ready_for_prediction: exerciseStats.total_readings > 0
             };
-          } else {
-            deviceData.total_readings = samplesData.length;
-            deviceData.recent_readings_5min = samplesData.length;
-            deviceData.is_online = samplesData.length > 0;
+            setDeviceStatus(deviceData);
           }
-          setDeviceStatus(deviceData);
+        } else {
+          console.log("Exercise statistics endpoint not available, falling back to sample counting");
+          
+          // Fallback: Fetch collected samples count from latest readings
+          const samplesResponse = await fetch(`${API_BASE_URL}/sensor-data/latest/${DEVICE_ID}?count=1000`);
+          if (samplesResponse.ok) {
+            const samplesData = await samplesResponse.json();
+            console.log(`Fetched ${samplesData.length} sensor readings for sample counting`);
+            
+            // Count samples by exercise_type (with fallback for old data)
+            const restCount = samplesData.filter((s: any) => 
+              s.exercise_type === "resting" || s.exercise_type === "rest"
+            ).length;
+            const bicepCount = samplesData.filter((s: any) => 
+              s.exercise_type === "bicep_curl" || s.exercise_type === "bicep"
+            ).length;
+            
+            console.log(`Sample counts - Rest: ${restCount}, Bicep: ${bicepCount}`);
+            setCollectedSamples({ rest: restCount, bicep_curl: bicepCount });
+            
+            // Update device status to reflect we have data
+            if (!deviceData) {
+              deviceData = {
+                device_id: DEVICE_ID,
+                is_online: samplesData.length > 0,
+                recent_readings_5min: samplesData.length,
+                total_readings: samplesData.length,
+                ready_for_prediction: samplesData.length > 0
+              };
+            } else {
+              deviceData.total_readings = samplesData.length;
+              deviceData.recent_readings_5min = samplesData.length;
+              deviceData.is_online = samplesData.length > 0;
+            }
+            setDeviceStatus(deviceData);
+          }
         }
       } catch (error) {
-        console.error("Failed to fetch samples data:", error);
+        console.error("Failed to fetch exercise statistics:", error);
       }
     } catch (error) {
       console.error("Failed to fetch status:", error);

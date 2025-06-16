@@ -82,6 +82,7 @@ class SensorDataResponse(BaseModel):
     mag_z: Optional[float]
     magnetometer_available: bool
     temperature: Optional[float]
+    exercise_type: Optional[str]  # Include exercise type in response
     session_id: Optional[int]
 
     class Config:
