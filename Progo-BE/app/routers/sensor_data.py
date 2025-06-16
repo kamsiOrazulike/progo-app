@@ -52,6 +52,7 @@ async def receive_sensor_data(
             gyro_z=sensor_data.gyroscope.z,
             magnetometer_available=sensor_data.magnetometer_available,
             temperature=sensor_data.temperature,
+            exercise_type=sensor_data.exercise_type,  # Store exercise type for training
             session_id=session_id
         )
         

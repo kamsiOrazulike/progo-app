@@ -51,6 +51,7 @@ class SensorDataInput(BaseModel):
     magnetometer: Optional[MagnetometerData] = None
     magnetometer_available: bool = False
     temperature: Optional[float] = None
+    exercise_type: Optional[str] = None  # Added for training data collection
 
     class Config:
         json_schema_extra = {
@@ -82,6 +83,7 @@ class SensorDataResponse(BaseModel):
     magnetometer_available: bool
     temperature: Optional[float]
     session_id: Optional[int]
+    exercise_type: Optional[str] = None  # Added for training data
 
     class Config:
         from_attributes = True
