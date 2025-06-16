@@ -1000,3 +1000,4 @@ fastapi.exceptions.ResponseValidationError: 2 validation errors:
 2025-06-05 18:03:18 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
 2025-06-05 18:03:18 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
 2025-06-05 18:04:33 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-06-16 12:52:39 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier

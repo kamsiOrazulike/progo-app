@@ -1363,3 +1363,6 @@ fastapi.exceptions.ResponseValidationError: 2 validation errors:
 2025-06-05 18:39:12 | INFO     | logging:callHandlers:1736 - Waiting for application shutdown.
 2025-06-05 18:39:12 | INFO     | logging:callHandlers:1736 - Application shutdown complete.
 2025-06-05 18:39:12 | INFO     | logging:callHandlers:1736 - Finished server process [29798]
+2025-06-16 12:52:38 | INFO     | app.utils.logging:setup_logging:68 - Logging configured successfully
+2025-06-16 12:52:39 | ERROR    | logging:callHandlers:1736 - No active model found with name: default_classifier
+2025-06-16 12:52:39 | INFO     | logging:callHandlers:1736 - Application startup complete.
