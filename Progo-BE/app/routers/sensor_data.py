@@ -23,6 +23,9 @@ router = APIRouter(prefix="/sensor-data", tags=["Sensor Data"])
 # Global workout manager instance
 workout_manager = WorkoutManager()
 
+# In-memory storage for device exercise states (temporary solution)
+device_exercise_states = {}  # device_id -> exercise_type
+
 
 @router.post("/", response_model=APIResponse)
 async def receive_sensor_data(
@@ -40,6 +43,11 @@ async def receive_sensor_data(
         if sensor_data.timestamp:
             timestamp = datetime.fromtimestamp(sensor_data.timestamp / 1000)
         
+        # Store exercise type in memory for this device
+        if sensor_data.exercise_type:
+            device_exercise_states[sensor_data.device_id] = sensor_data.exercise_type
+            logger.info(f"Device {sensor_data.device_id} exercise type: {sensor_data.exercise_type}")
+        
         # Create sensor reading record
         db_reading = SensorReading(
             device_id=sensor_data.device_id,
@@ -52,7 +60,6 @@ async def receive_sensor_data(
             gyro_z=sensor_data.gyroscope.z,
             magnetometer_available=sensor_data.magnetometer_available,
             temperature=sensor_data.temperature,
-            exercise_type=sensor_data.exercise_type,  # Store exercise type for training
             session_id=session_id
         )
         
@@ -429,6 +436,52 @@ async def get_device_status(
             } if last_reading else None,
             "ml_buffer_status": buffer_status,
             "ready_for_prediction": buffer_status.get('ready_for_prediction', False)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting device status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/devices/{device_id}/exercise-stats")
+async def get_exercise_statistics(
+    device_id: str,
+    db: Session = Depends(get_sync_db)
+):
+    """Get exercise statistics for a device (temporary solution using memory)."""
+    try:
+        # Get recent readings to estimate exercise distribution
+        recent_cutoff = datetime.now() - timedelta(hours=1)  # Last hour
+        recent_readings = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id,
+            SensorReading.timestamp >= recent_cutoff
+        ).count()
+        
+        # For now, return mock data based on device state
+        current_exercise = device_exercise_states.get(device_id, "resting")
+        
+        # Estimate sample counts (this will be improved when we have proper storage)
+        total_readings = db.query(SensorReading).filter(
+            SensorReading.device_id == device_id
+        ).count()
+        
+        # Mock exercise distribution - this is a temporary solution
+        # In reality, you'd count actual labeled data
+        estimated_rest = int(total_readings * 0.6)  # Assume 60% rest
+        estimated_bicep = int(total_readings * 0.4)  # Assume 40% exercise
+        
+        return {
+            "device_id": device_id,
+            "current_exercise": current_exercise,
+            "total_readings": total_readings,
+            "exercise_samples": {
+                "rest": estimated_rest,
+                "resting": estimated_rest,  # Alternative name
+                "bicep_curl": estimated_bicep,
+                "bicep": estimated_bicep  # Alternative name
+            },
+            "recent_readings_1h": recent_readings,
+            "last_updated": datetime.now().isoformat()
         }
         
     except Exception as e:

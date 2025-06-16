@@ -83,7 +83,6 @@ class SensorDataResponse(BaseModel):
     magnetometer_available: bool
     temperature: Optional[float]
     session_id: Optional[int]
-    exercise_type: Optional[str] = None  # Added for training data
 
     class Config:
         from_attributes = True
