@@ -14,6 +14,8 @@ from app.models.database import SensorReading, ExerciseSession, DeviceInfo, Work
 from app.ml.inference import inference_engine
 from app.ml.workout_manager import WorkoutManager
 from app.websocket.manager import websocket_manager
+from app.utils.reference_data import get_reference_summary, get_reference_readings
+from app.utils.form_analysis import form_analyzer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -675,3 +677,180 @@ async def get_websocket_status(device_id: str):
     except Exception as e:
         logger.error(f"Error getting WebSocket status for device {device_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/reference/summary")
+async def reference_summary():
+    """Get reference data summary."""
+    try:
+        summary = get_reference_summary()
+        return summary
+    except Exception as e:
+        logger.error(f"Error getting reference summary: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/reference/readings")
+async def reference_readings(
+    device_id: Optional[str] = None,
+    exercise_type: Optional[str] = None,
+    limit: int = Query(100, le=1000),
+    offset: int = Query(0, ge=0)
+):
+    """Get reference data readings."""
+    try:
+        readings = get_reference_readings(device_id=device_id, exercise_type=exercise_type, limit=limit, offset=offset)
+        return readings
+    except Exception as e:
+        logger.error(f"Error getting reference readings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/reference-data/bicep-curl", response_model=APIResponse, tags=["Reference Data"])
+async def get_reference_bicep_curl_data(
+    include_readings: bool = Query(False, description="Include full readings data in response")
+):
+    """
+    Get reference bicep curl data for form comparison.
+    
+    This endpoint provides access to the perfect bicep curl reference data
+    that can be used for form comparison and analysis.
+    
+    Args:
+        include_readings: If True, includes all 76 IMU readings in the response.
+                         If False, returns only summary metadata.
+    
+    Returns:
+        Reference data summary or full data including readings
+    """
+    try:
+        # Get summary information
+        summary = get_reference_summary()
+        
+        if include_readings:
+            # Include full readings data
+            readings = get_reference_readings()
+            return {
+                "success": True,
+                "message": f"Reference bicep curl data loaded successfully - {len(readings)} readings",
+                "data": {
+                    "summary": summary,
+                    "readings": readings
+                }
+            }
+        else:
+            # Return only summary
+            return {
+                "success": True,
+                "message": "Reference bicep curl summary loaded successfully",
+                "data": {
+                    "summary": summary
+                }
+            }
+    
+    except FileNotFoundError as e:
+        logger.error(f"Reference data file not found: {e}")
+        raise HTTPException(
+            status_code=404,
+            detail="Reference bicep curl data not found. Please ensure reference data is properly loaded."
+        )
+    except ValueError as e:
+        logger.error(f"Invalid reference data format: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid reference data format: {e}"
+        )
+    except Exception as e:
+        logger.error(f"Error loading reference data: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error loading reference bicep curl data: {e}"
+        )
+
+
+@router.post("/analyze-form", response_model=APIResponse, tags=["Form Analysis"])
+async def analyze_bicep_curl_form(
+    form_data: Dict[str, Any]
+):
+    """
+    Analyze bicep curl form by comparing live IMU readings against reference data.
+    
+    This endpoint accepts live IMU sensor readings and compares them against
+    the reference "perfect" bicep curl to provide form feedback and scoring.
+    
+    Request body format:
+    {
+        "readings": [
+            {
+                "accel_x": 0.154, "accel_y": 2.611, "accel_z": 9.481,
+                "gyro_x": 0.014, "gyro_y": 0.007, "gyro_z": -0.006,
+                "timestamp": "2025-06-18T10:30:00"
+            },
+            // ... more readings (minimum 5 required)
+        ]
+    }
+    
+    Returns form score (0-100), feedback message, and detailed analysis breakdown.
+    """
+    try:
+        # Validate request format
+        if "readings" not in form_data:
+            raise HTTPException(
+                status_code=400,
+                detail="Request must contain 'readings' array"
+            )
+        
+        readings = form_data["readings"]
+        
+        if not isinstance(readings, list):
+            raise HTTPException(
+                status_code=400,
+                detail="'readings' must be an array"
+            )
+        
+        if len(readings) < 5:
+            raise HTTPException(
+                status_code=400,
+                detail="Minimum 5 readings required for form analysis"
+            )
+        
+        # Validate each reading has required fields
+        required_fields = ["accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z"]
+        for i, reading in enumerate(readings):
+            if not isinstance(reading, dict):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Reading {i} must be an object"
+                )
+            
+            for field in required_fields:
+                if field not in reading:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Reading {i} missing required field: {field}"
+                    )
+                
+                if not isinstance(reading[field], (int, float)):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Reading {i} field '{field}' must be a number"
+                    )
+        
+        # Perform form analysis
+        logger.info(f"Analyzing form for {len(readings)} IMU readings")
+        analysis_result = form_analyzer.analyze_form(readings)
+        
+        return APIResponse(
+            success=True,
+            message=f"Form analysis completed for {len(readings)} readings",
+            data=analysis_result
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during form analysis: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Form analysis error: {str(e)}"
+        )

@@ -5,29 +5,53 @@
 #include <Adafruit_LSM6DSOX.h>
 #include <Adafruit_LIS3MDL.h>
 #include <Adafruit_Sensor.h>
-#include <WebSocketsClient.h>  // 🆕 ADD THIS LIBRARY
+#include <WebSocketsClient.h>
 
 const char* ssid = "Kamsi";
 const char* password = "nopassword";
 
 const char* apiEndpoint = "http://render-progo.onrender.com/api/v1/sensor-data/";
 const char* apiEndpointHTTPS = "https://render-progo.onrender.com/api/v1/sensor-data/";
+const char* formAnalysisEndpoint = "https://render-progo.onrender.com/api/v1/sensor-data/analyze-form";
 bool useHTTPS = false;
 
 // 🆕 WebSocket Configuration
 const char* wsHost = "render-progo.onrender.com";
-const int wsPort = 443;  // HTTPS port
+const int wsPort = 443;
 const char* wsPath = "/ws";
 WebSocketsClient webSocket;
 bool wsConnected = false;
 unsigned long lastWSReconnect = 0;
-const unsigned long wsReconnectInterval = 5000;  // Try reconnect every 5 seconds
+const unsigned long wsReconnectInterval = 5000;
 
 String deviceId = "";
 String deviceInfo = "";
 
-// Exercise type for training data collection set default to resting
+// Exercise type for training data collection
 String currentExercise = "resting";
+
+// 🆕 Form Analysis Configuration
+const int FORM_BUFFER_SIZE = 150;  // 15 seconds at 10Hz
+const unsigned long FORM_COLLECTION_DURATION = 15000;  // 15 seconds in milliseconds
+
+struct SensorData {
+  float accel_x, accel_y, accel_z;
+  float gyro_x, gyro_y, gyro_z;
+  float mag_x, mag_y, mag_z;
+  float temperature;
+  String timestamp;
+};
+
+// 🆕 Form Analysis Buffer
+struct FormAnalysisBuffer {
+  SensorData readings[FORM_BUFFER_SIZE];
+  int currentIndex;
+  bool isCollecting;
+  unsigned long startTime;
+  int totalReadings;
+};
+
+FormAnalysisBuffer formBuffer = {.currentIndex = 0, .isCollecting = false, .startTime = 0, .totalReadings = 0};
 
 // Sensors
 Adafruit_LSM6DSOX lsm6ds;
@@ -43,20 +67,11 @@ unsigned long lastDataSend = 0;
 const unsigned long sendInterval = 1000;  // Send data every 1000ms (1Hz)
 
 unsigned long lastMagRead = 0;
-const unsigned long magInterval = 500;  // Read magnetometer less frequently (2Hz)
+const unsigned long magInterval = 500;
 
 // 🆕 WebSocket heartbeat
 unsigned long lastHeartbeat = 0;
-const unsigned long heartbeatInterval = 30000;  // Send heartbeat every 30 seconds
-
-// Data storage
-struct SensorData {
-  float accel_x, accel_y, accel_z;
-  float gyro_x, gyro_y, gyro_z;
-  float mag_x, mag_y, mag_z;
-  float temperature;
-  unsigned long timestamp;
-};
+const unsigned long heartbeatInterval = 30000;
 
 SensorData currentData;
 
@@ -64,12 +79,12 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) delay(10);
 
-  Serial.println("🎉 ESP32 S3 IMU Data Collection - WITH WEBSOCKET SUPPORT!");
+  Serial.println("🎉 ESP32 S3 IMU Data Collection - WITH FORM ANALYSIS!");
   Serial.println("============================================================");
 
   // Initialize I2C with custom settings
   Wire.begin();
-  Wire.setClock(100000);  // Slower I2C clock for stability
+  Wire.setClock(100000);
 
   // Initialize sensors
   if (!initializeSensors()) {
@@ -80,10 +95,10 @@ void setup() {
   // Connect to WiFi
   connectToWiFi();
 
-  // 🆔 EXTRACT AND DISPLAY REAL DEVICE ID
+  // Extract and display device ID
   extractDeviceId();
 
-  // 🆕 Initialize WebSocket
+  // Initialize WebSocket
   initializeWebSocket();
 
   Serial.println("============================================================");
@@ -92,6 +107,8 @@ void setup() {
   Serial.println("  Type 'bicep' - Start bicep curl data collection");
   Serial.println("  Type 'squat' - Start squat data collection");
   Serial.println("  Type 'rest' - Stop exercise data collection");
+  Serial.println("  Type 'start_form' - Begin form analysis (15sec buffer)");
+  Serial.println("  Type 'stop_form' - Stop form analysis and send data");
   Serial.println("  Type 'test' - Test API connection");
   Serial.println("  Type 'info' - Show device information");
   Serial.println("  Type 'mag_off' - Disable magnetometer");
@@ -105,13 +122,13 @@ void setup() {
 void loop() {
   unsigned long currentTime = millis();
 
-  // 🆕 Handle WebSocket events
+  // Handle WebSocket events
   webSocket.loop();
 
-  // 🆕 Auto-reconnect WebSocket if disconnected
+  // Auto-reconnect WebSocket if disconnected
   handleWebSocketReconnect();
 
-  // 🆕 Send heartbeat to keep connection alive
+  // Send heartbeat to keep connection alive
   if (wsConnected && currentTime - lastHeartbeat >= heartbeatInterval) {
     sendHeartbeat();
     lastHeartbeat = currentTime;
@@ -123,6 +140,17 @@ void loop() {
   // Read sensor data at specified interval
   if (currentTime - lastSensorRead >= sensorInterval) {
     readSensorData();
+    
+    // 🆕 Add reading to form analysis buffer if collecting
+    if (formBuffer.isCollecting) {
+      addReadingToBuffer(currentData);
+      
+      // Check if collection time is complete
+      if (currentTime - formBuffer.startTime >= FORM_COLLECTION_DURATION) {
+        stopFormAnalysis();
+      }
+    }
+    
     lastSensorRead = currentTime;
   }
 
@@ -133,7 +161,6 @@ void loop() {
     } else {
       Serial.println("📶 WiFi disconnected, attempting reconnection...");
       connectToWiFi();
-      // 🆕 Reconnect WebSocket after WiFi reconnection
       initializeWebSocket();
     }
     lastDataSend = currentTime;
@@ -142,15 +169,194 @@ void loop() {
   delay(10);
 }
 
+// 🆕 FORM ANALYSIS FUNCTIONS
+
+void startFormAnalysis() {
+  if (formBuffer.isCollecting) {
+    Serial.println("⚠️ Form analysis already in progress!");
+    return;
+  }
+  
+  // Reset buffer
+  formBuffer.currentIndex = 0;
+  formBuffer.totalReadings = 0;
+  formBuffer.isCollecting = true;
+  formBuffer.startTime = millis();
+  
+  Serial.println("🏋️‍♂️ FORM ANALYSIS STARTED!");
+  Serial.println("📊 Collecting 15 seconds of movement data...");
+  Serial.println("💡 Perform your bicep curls with proper form!");
+  
+  // Notify backend via WebSocket
+  if (wsConnected) {
+    DynamicJsonDocument doc(256);
+    doc["type"] = "form_analysis_started";
+    doc["device_id"] = deviceId;
+    doc["timestamp"] = millis();
+    doc["collection_duration"] = FORM_COLLECTION_DURATION;
+    
+    String message;
+    serializeJson(doc, message);
+    webSocket.sendTXT(message);
+  }
+}
+
+void stopFormAnalysis() {
+  if (!formBuffer.isCollecting) {
+    Serial.println("⚠️ Form analysis not in progress!");
+    return;
+  }
+  
+  formBuffer.isCollecting = false;
+  
+  Serial.printf("📊 Form analysis complete! Collected %d readings\n", formBuffer.totalReadings);
+  Serial.println("🔄 Sending data for analysis...");
+  
+  // Send buffer for analysis
+  sendBufferForAnalysis();
+}
+
+void addReadingToBuffer(SensorData data) {
+  if (!formBuffer.isCollecting || formBuffer.currentIndex >= FORM_BUFFER_SIZE) {
+    return;
+  }
+  
+  formBuffer.readings[formBuffer.currentIndex] = data;
+  formBuffer.currentIndex++;
+  formBuffer.totalReadings++;
+  
+  // Show progress every 3 seconds (30 readings at 10Hz)
+  if (formBuffer.totalReadings % 30 == 0) {
+    int secondsElapsed = formBuffer.totalReadings / 10;
+    Serial.printf("📊 Form analysis progress: %d seconds collected...\n", secondsElapsed);
+  }
+}
+
+void sendBufferForAnalysis() {
+  if (formBuffer.totalReadings < 5) {
+    Serial.println("❌ Not enough readings for analysis (minimum 5 required)");
+    return;
+  }
+  
+  HTTPClient http;
+  
+  if (!http.begin(formAnalysisEndpoint)) {
+    Serial.println("❌ Failed to begin HTTP connection for form analysis");
+    return;
+  }
+  
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(30000);  // Longer timeout for analysis
+  
+  // Create JSON payload with readings
+  DynamicJsonDocument doc(8192);  // Larger buffer for many readings
+  JsonArray readings = doc.createNestedArray("readings");
+  
+  for (int i = 0; i < formBuffer.totalReadings && i < FORM_BUFFER_SIZE; i++) {
+    JsonObject reading = readings.createNestedObject();
+    reading["accel_x"] = formBuffer.readings[i].accel_x;
+    reading["accel_y"] = formBuffer.readings[i].accel_y;
+    reading["accel_z"] = formBuffer.readings[i].accel_z;
+    reading["gyro_x"] = formBuffer.readings[i].gyro_x;
+    reading["gyro_y"] = formBuffer.readings[i].gyro_y;
+    reading["gyro_z"] = formBuffer.readings[i].gyro_z;
+    reading["temperature"] = formBuffer.readings[i].temperature;
+    reading["timestamp"] = formBuffer.readings[i].timestamp;
+  }
+  
+  String payload;
+  serializeJson(doc, payload);
+  
+  Serial.printf("📤 Sending %d readings for form analysis...\n", formBuffer.totalReadings);
+  
+  int httpResponseCode = http.POST(payload);
+  
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    
+    if (httpResponseCode == 200) {
+      Serial.println("✅ Form analysis completed!");
+      handleFormAnalysisResponse(response);
+    } else {
+      Serial.printf("❌ Form analysis failed with code: %d\n", httpResponseCode);
+      Serial.println("Response: " + response);
+    }
+  } else {
+    Serial.printf("❌ Form analysis request failed: %d\n", httpResponseCode);
+  }
+  
+  http.end();
+}
+
+void handleFormAnalysisResponse(String response) {
+  DynamicJsonDocument doc(1024);
+  DeserializationError error = deserializeJson(doc, response);
+  
+  if (error) {
+    Serial.println("❌ Failed to parse form analysis response");
+    return;
+  }
+  
+  if (doc["success"]) {
+    JsonObject data = doc["data"];
+    int formScore = data["form_score"];
+    String feedback = data["feedback"];
+    
+    JsonObject analysis = data["analysis"];
+    int rangeScore = analysis["range_score"];
+    int smoothnessScore = analysis["smoothness_score"];
+    int consistencyScore = analysis["consistency_score"];
+    
+    // Display beautiful form analysis results
+    Serial.println("🏋️‍♂️ ====== FORM ANALYSIS RESULTS ======");
+    Serial.printf("   Overall Score: %d/100 %s\n", formScore, getScoreEmoji(formScore));
+    Serial.println("   ────────────────────────────────────");
+    Serial.printf("   Range Score:       %d/100 %s\n", rangeScore, getScoreEmoji(rangeScore));
+    Serial.printf("   Smoothness Score:  %d/100 %s\n", smoothnessScore, getScoreEmoji(smoothnessScore));
+    Serial.printf("   Consistency Score: %d/100 %s\n", consistencyScore, getScoreEmoji(consistencyScore));
+    Serial.println("   ────────────────────────────────────");
+    Serial.printf("   💬 Feedback: %s\n", feedback.c_str());
+    Serial.println("======================================");
+    
+    // Send results via WebSocket to frontend
+    if (wsConnected) {
+      DynamicJsonDocument wsDoc(1024);
+      wsDoc["type"] = "form_analysis_result";
+      wsDoc["device_id"] = deviceId;
+      wsDoc["form_score"] = formScore;
+      wsDoc["feedback"] = feedback;
+      wsDoc["range_score"] = rangeScore;
+      wsDoc["smoothness_score"] = smoothnessScore;
+      wsDoc["consistency_score"] = consistencyScore;
+      wsDoc["timestamp"] = millis();
+      
+      String wsMessage;
+      serializeJson(wsDoc, wsMessage);
+      webSocket.sendTXT(wsMessage);
+    }
+    
+  } else {
+    Serial.println("❌ Form analysis failed: " + String(doc["message"] | "Unknown error"));
+  }
+}
+
+String getScoreEmoji(int score) {
+  if (score >= 90) return "⭐⭐⭐⭐⭐";
+  else if (score >= 80) return "⭐⭐⭐⭐";
+  else if (score >= 70) return "⭐⭐⭐";
+  else if (score >= 60) return "⭐⭐";
+  else if (score >= 50) return "⭐";
+  else return "💪 (Keep practicing!)";
+}
+
 // 🆕 WebSocket Initialization
 void initializeWebSocket() {
   Serial.println("🔌 Initializing WebSocket connection...");
 
-  // Configure WebSocket
-  webSocket.begin(wsHost, wsPort, wsPath, "wss");  // Use WSS for secure connection
+  webSocket.begin(wsHost, wsPort, wsPath, "wss");
   webSocket.onEvent(webSocketEvent);
-  webSocket.setReconnectInterval(5000);       // Auto-reconnect every 5 seconds
-  webSocket.enableHeartbeat(15000, 3000, 2);  // Enable built-in heartbeat
+  webSocket.setReconnectInterval(5000);
+  webSocket.enableHeartbeat(15000, 3000, 2);
 
   Serial.printf("🔗 Connecting to WebSocket: wss://%s:%d%s\n", wsHost, wsPort, wsPath);
 }
@@ -166,8 +372,6 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
     case WStype_CONNECTED:
       Serial.printf("🔌 WebSocket Connected to: %s\n", payload);
       wsConnected = true;
-
-      // 🆕 Send device identification on connect
       sendDeviceIdentification();
       break;
 
@@ -188,19 +392,18 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
     case WStype_FRAGMENT_BIN_START:
     case WStype_FRAGMENT:
     case WStype_FRAGMENT_FIN:
-      // Handle fragmented messages if needed
       break;
   }
 }
 
-// 🆕 Send Device Identification to Backend
+// Send Device Identification to Backend
 void sendDeviceIdentification() {
   DynamicJsonDocument doc(512);
   doc["type"] = "device_connect";
   doc["device_id"] = deviceId;
   doc["device_info"] = deviceInfo;
-  doc["capabilities"] = "imu_9dof";
-  doc["firmware_version"] = "1.0.0";
+  doc["capabilities"] = "imu_9dof_form_analysis";
+  doc["firmware_version"] = "1.1.0";
   doc["timestamp"] = millis();
 
   String message;
@@ -210,7 +413,7 @@ void sendDeviceIdentification() {
   Serial.println("🆔 Sent device identification to backend");
 }
 
-// 🆕 Handle WebSocket Commands from Backend
+// Handle WebSocket Commands from Backend
 void handleWebSocketCommand(String message) {
   DynamicJsonDocument doc(1024);
   DeserializationError error = deserializeJson(doc, message);
@@ -220,22 +423,18 @@ void handleWebSocketCommand(String message) {
     return;
   }
 
-  // Check if this is a device command
   if (doc["type"] == "device_command") {
     String command = doc["command"];
     String timestamp = doc["timestamp"] | "";
 
     Serial.printf("🎮 Received command from backend: %s\n", command.c_str());
 
-    // Process the command (reuse existing logic!)
     bool success = processCommand(command);
-
-    // 🆕 Send acknowledgment back to backend
     sendCommandAcknowledgment(command, success, timestamp);
   }
 }
 
-// 🆕 Process Command (extracted from checkSerialCommands)
+// Process Command (updated with form analysis commands)
 bool processCommand(String command) {
   command.trim();
   command.toLowerCase();
@@ -251,6 +450,12 @@ bool processCommand(String command) {
   } else if (command == "rest") {
     currentExercise = "resting";
     Serial.println("😴 Now collecting RESTING data for device: " + deviceId);
+    return true;
+  } else if (command == "start_form" || command == "start_form_analysis") {
+    startFormAnalysis();
+    return true;
+  } else if (command == "stop_form" || command == "stop_form_analysis") {
+    stopFormAnalysis();
     return true;
   } else if (command == "test") {
     Serial.println("🧪 Testing API connection...");
@@ -276,7 +481,7 @@ bool processCommand(String command) {
   }
 }
 
-// 🆕 Send Command Acknowledgment to Backend
+// Send Command Acknowledgment to Backend
 void sendCommandAcknowledgment(String command, bool success, String originalTimestamp) {
   if (!wsConnected) return;
 
@@ -288,6 +493,7 @@ void sendCommandAcknowledgment(String command, bool success, String originalTime
   doc["timestamp"] = millis();
   doc["original_timestamp"] = originalTimestamp;
   doc["current_exercise"] = currentExercise;
+  doc["form_analysis_active"] = formBuffer.isCollecting;
 
   String message;
   serializeJson(doc, message);
@@ -296,7 +502,7 @@ void sendCommandAcknowledgment(String command, bool success, String originalTime
   Serial.printf("📤 Sent command acknowledgment: %s -> %s\n", command.c_str(), success ? "executed" : "failed");
 }
 
-// 🆕 Handle WebSocket Reconnection
+// Handle WebSocket Reconnection
 void handleWebSocketReconnect() {
   if (!wsConnected && WiFi.status() == WL_CONNECTED) {
     unsigned long currentTime = millis();
@@ -310,7 +516,7 @@ void handleWebSocketReconnect() {
   }
 }
 
-// 🆕 Send Heartbeat to Keep Connection Alive
+// Send Heartbeat to Keep Connection Alive
 void sendHeartbeat() {
   if (!wsConnected) return;
 
@@ -321,6 +527,7 @@ void sendHeartbeat() {
   doc["uptime"] = millis() / 1000;
   doc["free_heap"] = ESP.getFreeHeap();
   doc["current_exercise"] = currentExercise;
+  doc["form_analysis_active"] = formBuffer.isCollecting;
 
   String message;
   serializeJson(doc, message);
@@ -330,10 +537,7 @@ void sendHeartbeat() {
 }
 
 void extractDeviceId() {
-  // Get the real MAC address as device ID
   deviceId = WiFi.macAddress();
-
-  // Format device info
   deviceInfo = "ESP32-S3 | MAC: " + deviceId + " | Chip: " + String(ESP.getChipModel());
 
   Serial.println("🆔 DEVICE IDENTIFICATION:");
@@ -343,7 +547,6 @@ void extractDeviceId() {
   Serial.println("   SDK Version: " + String(ESP.getSdkVersion()));
   Serial.println("   Free Heap: " + String(ESP.getFreeHeap()) + " bytes");
 
-  // Also print in a format easy to copy for frontend
   Serial.println("📋 FOR FRONTEND CONFIGURATION:");
   Serial.println("   const DEVICE_ID = \"" + deviceId + "\";");
 }
@@ -351,12 +554,10 @@ void extractDeviceId() {
 void checkSerialCommands() {
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
-
-    // 🆕 Use the same command processing function
     bool success = processCommand(command);
 
     if (!success) {
-      Serial.println("❌ Unknown command. Use: bicep, squat, rest, test, info, mag_off, mag_on");
+      Serial.println("❌ Unknown command. Use: bicep, squat, rest, start_form, stop_form, test, info, mag_off, mag_on");
     }
   }
 }
@@ -365,15 +566,19 @@ void showDeviceInfo() {
   Serial.println("📱 DEVICE INFORMATION:");
   Serial.println("   Device ID: " + deviceId);
   Serial.println("   Current Exercise: " + currentExercise);
+  Serial.println("   Form Analysis: " + String(formBuffer.isCollecting ? "ACTIVE" : "INACTIVE"));
   Serial.println("   WiFi Status: " + String(WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected"));
   Serial.println("   IP Address: " + WiFi.localIP().toString());
   Serial.println("   Signal Strength: " + String(WiFi.RSSI()) + " dBm");
-  Serial.println("   WebSocket Status: " + String(wsConnected ? "Connected" : "Disconnected"));  // 🆕
+  Serial.println("   WebSocket Status: " + String(wsConnected ? "Connected" : "Disconnected"));
   Serial.println("   Magnetometer Available: " + String(magnetometer_available ? "Yes" : "No"));
   Serial.println("   Magnetometer Enabled: " + String(magnetometer_enabled ? "Yes" : "No"));
   Serial.println("   Using: " + String(useHTTPS ? "HTTPS" : "HTTP"));
   Serial.println("   Free Memory: " + String(ESP.getFreeHeap()) + " bytes");
   Serial.println("   Uptime: " + String(millis() / 1000) + " seconds");
+  if (formBuffer.isCollecting) {
+    Serial.println("   Form Buffer: " + String(formBuffer.totalReadings) + "/" + String(FORM_BUFFER_SIZE) + " readings");
+  }
 }
 
 bool initializeSensors() {
@@ -389,7 +594,6 @@ bool initializeSensors() {
   Serial.println("🔧 Initializing LIS3MDL (magnetometer)...");
   bool lis3mdl_success = false;
 
-  // Try different I2C addresses with error handling
   if (!lis3mdl_success) {
     if (lis3mdl.begin_I2C(0x1E)) {
       lis3mdl_success = true;
@@ -421,14 +625,12 @@ bool initializeSensors() {
     magnetometer_available = true;
     magnetometer_enabled = true;
 
-    // Configure magnetometer with conservative settings
-    lis3mdl.setDataRate(LIS3MDL_DATARATE_80_HZ);  // Slower rate
+    lis3mdl.setDataRate(LIS3MDL_DATARATE_80_HZ);
     lis3mdl.setRange(LIS3MDL_RANGE_4_GAUSS);
-    lis3mdl.setPerformanceMode(LIS3MDL_LOWPOWERMODE);  // Low power mode
+    lis3mdl.setPerformanceMode(LIS3MDL_LOWPOWERMODE);
     lis3mdl.setOperationMode(LIS3MDL_CONTINUOUSMODE);
   }
 
-  // Configure LSM6DSOX
   lsm6ds.setAccelRange(LSM6DS_ACCEL_RANGE_4_G);
   lsm6ds.setGyroRange(LSM6DS_GYRO_RANGE_500_DPS);
   lsm6ds.setAccelDataRate(LSM6DS_RATE_104_HZ);
@@ -462,7 +664,6 @@ void connectToWiFi() {
 }
 
 void readSensorData() {
-  // Read LSM6DSOX (accelerometer and gyroscope) - this always works
   sensors_event_t accel, gyro, temp;
   lsm6ds.getEvent(&accel, &gyro, &temp);
 
@@ -476,11 +677,11 @@ void readSensorData() {
 
   currentData.temperature = temp.temperature;
 
-  // Read magnetometer less frequently and with error handling
+  // Create timestamp string
+  currentData.timestamp = String(millis());
+
   unsigned long currentTime = millis();
   if (magnetometer_available && magnetometer_enabled && (currentTime - lastMagRead >= magInterval)) {
-
-    // Try to read magnetometer with timeout
     bool mag_read_success = false;
 
     try {
@@ -491,12 +692,10 @@ void readSensorData() {
       mag_read_success = true;
       lastMagRead = currentTime;
     } catch (...) {
-      // If magnetometer read fails, use previous values
       Serial.println("⚠️ Magnetometer read failed, using previous values");
     }
 
     if (!mag_read_success) {
-      // Keep previous magnetometer values or set to zero
       if (currentData.mag_x == 0 && currentData.mag_y == 0 && currentData.mag_z == 0) {
         currentData.mag_x = 0.0;
         currentData.mag_y = 0.0;
@@ -509,13 +708,14 @@ void readSensorData() {
     currentData.mag_z = 0.0;
   }
 
-  currentData.timestamp = millis();
-
-  // Print data with device ID, current exercise type, and WebSocket status
-  Serial.printf("[%s | %s | WS:%s] A:%.2f,%.2f,%.2f G:%.2f,%.2f,%.2f T:%.1f°C",
+  // Print data with form analysis status
+  String formStatus = formBuffer.isCollecting ? "FORM" : "NORM";
+  
+  Serial.printf("[%s | %s | %s | WS:%s] A:%.2f,%.2f,%.2f G:%.2f,%.2f,%.2f T:%.1f°C",
                 deviceId.c_str(),
                 currentExercise.c_str(),
-                wsConnected ? "✓" : "✗",  // 🆕 WebSocket status indicator
+                formStatus.c_str(),
+                wsConnected ? "✓" : "✗",
                 currentData.accel_x, currentData.accel_y, currentData.accel_z,
                 currentData.gyro_x, currentData.gyro_y, currentData.gyro_z,
                 currentData.temperature);
@@ -542,9 +742,8 @@ void testAPIConnection() {
 
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(15000);
-  http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);  // Force follow redirects
+  http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
 
-  // Create test payload with REAL device ID
   DynamicJsonDocument testDoc(1024);
   testDoc["device_id"] = deviceId;
   testDoc["accel_x"] = 1.0;
@@ -559,7 +758,6 @@ void testAPIConnection() {
   testDoc["magnetometer_available"] = magnetometer_available;
   testDoc["temperature"] = 25.0;
 
-  // Add compound objects
   JsonObject accelerometer = testDoc.createNestedObject("accelerometer");
   accelerometer["x"] = 1.0;
   accelerometer["y"] = 2.0;
@@ -617,13 +815,10 @@ void sendDataToAPI() {
 
   http.addHeader("Content-Type", "application/json");
 
-  // Create complete payload with REAL device ID
   DynamicJsonDocument doc(1536);
 
-  // 🆔 REAL DEVICE ID (MAC address)
   doc["device_id"] = deviceId;
 
-  // Individual sensor fields
   doc["accel_x"] = currentData.accel_x;
   doc["accel_y"] = currentData.accel_y;
   doc["accel_z"] = currentData.accel_z;
@@ -637,7 +832,6 @@ void sendDataToAPI() {
   doc["temperature"] = currentData.temperature;
   doc["exercise_type"] = currentExercise;
 
-  // Compound objects for validation
   JsonObject accelerometer = doc.createNestedObject("accelerometer");
   accelerometer["x"] = currentData.accel_x;
   accelerometer["y"] = currentData.accel_y;
@@ -653,13 +847,11 @@ void sendDataToAPI() {
   magnetometer["y"] = currentData.mag_y;
   magnetometer["z"] = currentData.mag_z;
 
-  // Session grouping
   doc["session_id"] = String("session_") + deviceId + "_" + String(millis() / 60000);
 
   String jsonString;
   serializeJson(doc, jsonString);
 
-  // Send HTTP POST request
   int httpResponseCode = http.POST(jsonString);
 
   if (httpResponseCode > 0) {

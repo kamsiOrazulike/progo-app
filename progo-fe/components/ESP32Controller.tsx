@@ -48,6 +48,17 @@ interface TrainingStatus {
   training_samples?: number;
 }
 
+interface FormAnalysisResult {
+  form_score: number;
+  feedback: string;
+  analysis: {
+    range_score: number;
+    smoothness_score: number;
+    consistency_score: number;
+  };
+  timestamp?: string;
+}
+
 export default function ESP32Controller() {
   const [wsStatus, setWsStatus] = useState<WebSocketStatus | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
@@ -65,6 +76,17 @@ export default function ESP32Controller() {
     rest: 0,
     bicep_curl: 0
   });
+
+  // Form Analysis State
+  const [formScore, setFormScore] = useState<number | null>(null);
+  const [formFeedback, setFormFeedback] = useState<string>('');
+  const [formBreakdown, setFormBreakdown] = useState({
+    range_score: 0,
+    smoothness_score: 0,
+    consistency_score: 0
+  });
+  const [formAnalysisHistory, setFormAnalysisHistory] = useState<FormAnalysisResult[]>([]);
+  const [isFormAnalyzing, setIsFormAnalyzing] = useState(false);
 
   const isConnected = (wsStatus?.is_connected || deviceStatus?.is_online || (deviceStatus?.total_readings && deviceStatus.total_readings > 0)) ?? false;
 
@@ -488,6 +510,100 @@ export default function ESP32Controller() {
     }
   };
 
+  // Form Analysis Functions
+  const startFormAnalysis = async () => {
+    if (!isConnected || isFormAnalyzing) return;
+    
+    setIsFormAnalyzing(true);
+    try {
+      // Use existing sendCommand pattern to start form analysis
+      await sendCommand('start_form_analysis');
+      
+      // Set a timeout to simulate analysis duration (10 seconds)
+      setTimeout(async () => {
+        await analyzeRecentForm();
+      }, 10000);
+      
+    } catch (error) {
+      console.error("Error starting form analysis:", error);
+      setIsFormAnalyzing(false);
+    }
+  };
+
+  const stopFormAnalysis = async () => {
+    if (!isFormAnalyzing) return;
+    
+    try {
+      await sendCommand('stop_form_analysis');
+    } catch (error) {
+      console.error("Error stopping form analysis:", error);
+    }
+    setIsFormAnalyzing(false);
+  };
+
+  const analyzeRecentForm = async () => {
+    if (!isConnected) return;
+
+    try {
+      // Fetch recent sensor readings for form analysis
+      const response = await fetch(`${API_BASE_URL}/sensor-data/latest/${DEVICE_ID}?count=50`);
+      if (response.ok) {
+        const readings = await response.json();
+        
+        // Filter to only bicep curl readings for analysis
+        const bicepReadings = readings.filter((r: any) => 
+          r.exercise_type === "bicep_curl" || r.exercise_type === "bicep"
+        );
+
+        if (bicepReadings.length >= 5) {
+          // Call the form analysis endpoint
+          const analysisResponse = await fetch(`${API_BASE_URL}/sensor-data/analyze-form`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              readings: bicepReadings.slice(0, 30) // Use most recent 30 readings
+            }),
+          });
+
+          if (analysisResponse.ok) {
+            const result = await analysisResponse.json();
+            if (result.success && result.data) {
+              const analysisData = result.data;
+              
+              // Update form analysis state
+              setFormScore(analysisData.form_score);
+              setFormFeedback(analysisData.feedback);
+              setFormBreakdown({
+                range_score: analysisData.analysis.range_score,
+                smoothness_score: analysisData.analysis.smoothness_score,
+                consistency_score: analysisData.analysis.consistency_score
+              });
+
+              // Add to history with timestamp
+              const newResult: FormAnalysisResult = {
+                ...analysisData,
+                timestamp: new Date().toLocaleTimeString()
+              };
+              setFormAnalysisHistory(prev => [newResult, ...prev.slice(0, 4)]);
+            }
+          } else {
+            console.error("Form analysis request failed:", analysisResponse.status);
+            setFormFeedback("Analysis failed - please try again");
+          }
+        } else {
+          setFormFeedback("Not enough bicep curl data for analysis");
+        }
+      }
+    } catch (error) {
+      console.error("Error analyzing form:", error);
+      setFormFeedback("Analysis error - please try again");
+    } finally {
+      setIsFormAnalyzing(false);
+    }
+  };
+
   // Poll status every 5 seconds
   useEffect(() => {
     fetchStatus(); // Initial fetch
@@ -818,6 +934,179 @@ export default function ESP32Controller() {
             >
               Rest
             </button>
+          </div>
+        </div>
+
+        {/* Form Analysis Card */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white flex items-center">
+              🏋️‍♂️ Form Analysis
+            </h3>
+            <div
+              className={`w-3 h-3 rounded-full ${
+                isFormAnalyzing ? "bg-blue-500 animate-pulse" : 
+                formScore !== null ? "bg-green-500" : "bg-gray-500"
+              }`}
+            ></div>
+          </div>
+          
+          {/* Form Score Display */}
+          {formScore !== null ? (
+            <div className="mb-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="relative w-24 h-24">
+                  {/* Circular Progress Background */}
+                  <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="transparent"
+                      className="text-gray-700"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="transparent"
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - formScore / 100)}`}
+                      className={`transition-all duration-1000 ${
+                        formScore >= 80 ? "text-green-500" :
+                        formScore >= 60 ? "text-yellow-500" : "text-red-500"
+                      }`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  {/* Score Text */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className={`text-2xl font-bold ${
+                      formScore >= 80 ? "text-green-400" :
+                      formScore >= 60 ? "text-yellow-400" : "text-red-400"
+                    }`}>
+                      {formScore}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Breakdown Bars */}
+              <div className="space-y-3 mb-4">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-400">Range of Motion</span>
+                    <span className="text-white">{formBreakdown.range_score}%</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-1000 ${
+                        formBreakdown.range_score >= 80 ? "bg-green-500" :
+                        formBreakdown.range_score >= 60 ? "bg-yellow-500" : "bg-red-500"
+                      }`}
+                      style={{ width: `${Math.min(formBreakdown.range_score, 100)}%` }}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-400">Smoothness</span>
+                    <span className="text-white">{formBreakdown.smoothness_score}%</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-1000 ${
+                        formBreakdown.smoothness_score >= 80 ? "bg-green-500" :
+                        formBreakdown.smoothness_score >= 60 ? "bg-yellow-500" : "bg-red-500"
+                      }`}
+                      style={{ width: `${Math.min(formBreakdown.smoothness_score, 100)}%` }}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-400">Consistency</span>
+                    <span className="text-white">{formBreakdown.consistency_score}%</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-1000 ${
+                        formBreakdown.consistency_score >= 80 ? "bg-green-500" :
+                        formBreakdown.consistency_score >= 60 ? "bg-yellow-500" : "bg-red-500"
+                      }`}
+                      style={{ width: `${Math.min(formBreakdown.consistency_score, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Feedback Message */}
+              {formFeedback && (
+                <div className="bg-gray-800/50 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-gray-300">{formFeedback}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center text-gray-400 text-sm mb-6">
+              {isFormAnalyzing ? "Analyzing your form..." : "No form analysis available yet"}
+            </div>
+          )}
+          
+          {/* Control Buttons */}
+          <div className="space-y-3">
+            {!isFormAnalyzing ? (
+              <button
+                onClick={startFormAnalysis}
+                disabled={!isConnected || !trainingStatus.accuracy}
+                className={`w-full py-2 px-3 rounded text-sm font-medium transition-colors ${
+                  !isConnected || !trainingStatus.accuracy
+                    ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                    : "bg-purple-600 hover:bg-purple-700 text-white"
+                }`}
+              >
+                Analyze Form
+              </button>
+            ) : (
+              <button
+                onClick={stopFormAnalysis}
+                className="w-full py-2 px-3 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors"
+              >
+                Stop Analysis
+              </button>
+            )}
+            
+            {!trainingStatus.accuracy && (
+              <div className="text-xs text-yellow-400 text-center">
+                Train a model first for form analysis
+              </div>
+            )}
+            
+            {/* Mini History */}
+            {formAnalysisHistory.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-xs text-gray-400 mb-2">Recent Analysis</h4>
+                <div className="space-y-1 max-h-16 overflow-y-auto">
+                  {formAnalysisHistory.slice(0, 3).map((result, index) => (
+                    <div key={index} className="flex justify-between text-xs">
+                      <span className="text-gray-400">{result.timestamp}</span>
+                      <span className={`font-medium ${
+                        result.form_score >= 80 ? "text-green-400" :
+                        result.form_score >= 60 ? "text-yellow-400" : "text-red-400"
+                      }`}>
+                        {result.form_score}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
