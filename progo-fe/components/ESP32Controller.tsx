@@ -88,6 +88,9 @@ export default function ESP32Controller() {
   const [formAnalysisHistory, setFormAnalysisHistory] = useState<FormAnalysisResult[]>([]);
   const [isFormAnalyzing, setIsFormAnalyzing] = useState(false);
 
+  // WebSocket connection for real-time communication
+  const [ws, setWs] = useState<WebSocket | null>(null);
+
   const isConnected = (wsStatus?.is_connected || deviceStatus?.is_online || (deviceStatus?.total_readings && deviceStatus.total_readings > 0)) ?? false;
 
   const fetchStatus = useCallback(async () => {
@@ -516,13 +519,13 @@ export default function ESP32Controller() {
     
     setIsFormAnalyzing(true);
     try {
-      // Use existing sendCommand pattern to start form analysis
+      // Just send command to ESP32 - it handles everything!
       await sendCommand('start_form_analysis');
+      console.log("🎯 Form analysis started - ESP32 will collect 15s of data and send results");
+      console.log("📡 WebSocket status:", ws ? "Connected" : "Disconnected");
       
-      // Set a timeout to simulate analysis duration (10 seconds)
-      setTimeout(async () => {
-        await analyzeRecentForm();
-      }, 10000);
+      // ESP32 will handle collection and send results back via WebSocket
+      // No need to do anything else here
       
     } catch (error) {
       console.error("Error starting form analysis:", error);
@@ -541,75 +544,78 @@ export default function ESP32Controller() {
     setIsFormAnalyzing(false);
   };
 
-  const analyzeRecentForm = async () => {
-    if (!isConnected) return;
-
-    try {
-      // Fetch recent sensor readings for form analysis
-      const response = await fetch(`${API_BASE_URL}/sensor-data/latest/${DEVICE_ID}?count=50`);
-      if (response.ok) {
-        const readings = await response.json();
-        
-        // Filter to only bicep curl readings for analysis
-        const bicepReadings = readings.filter((r: any) => 
-          r.exercise_type === "bicep_curl" || r.exercise_type === "bicep"
-        );
-
-        if (bicepReadings.length >= 5) {
-          // Call the form analysis endpoint
-          const analysisResponse = await fetch(`${API_BASE_URL}/sensor-data/analyze-form`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              readings: bicepReadings.slice(0, 30) // Use most recent 30 readings
-            }),
-          });
-
-          if (analysisResponse.ok) {
-            const result = await analysisResponse.json();
-            if (result.success && result.data) {
-              const analysisData = result.data;
-              
-              // Update form analysis state
-              setFormScore(analysisData.form_score);
-              setFormFeedback(analysisData.feedback);
-              setFormBreakdown({
-                range_score: analysisData.analysis.range_score,
-                smoothness_score: analysisData.analysis.smoothness_score,
-                consistency_score: analysisData.analysis.consistency_score
-              });
-
-              // Add to history with timestamp
-              const newResult: FormAnalysisResult = {
-                ...analysisData,
-                timestamp: new Date().toLocaleTimeString()
-              };
-              setFormAnalysisHistory(prev => [newResult, ...prev.slice(0, 4)]);
-            }
-          } else {
-            console.error("Form analysis request failed:", analysisResponse.status);
-            setFormFeedback("Analysis failed - please try again");
-          }
-        } else {
-          setFormFeedback("Not enough bicep curl data for analysis");
-        }
-      }
-    } catch (error) {
-      console.error("Error analyzing form:", error);
-      setFormFeedback("Analysis error - please try again");
-    } finally {
-      setIsFormAnalyzing(false);
-    }
-  };
-
   // Poll status every 5 seconds
   useEffect(() => {
     fetchStatus(); // Initial fetch
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, [fetchStatus]);
+
+  // WebSocket connection for real-time form analysis results
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Create WebSocket connection to backend
+    const wsUrl = `wss://render-progo.onrender.com/ws/${DEVICE_ID}`;
+    const websocket = new WebSocket(wsUrl);
+
+    websocket.onopen = () => {
+      console.log("🔗 WebSocket connected for form analysis");
+      setWs(websocket);
+    };
+
+    websocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("📩 WebSocket message received:", data);
+
+        // Handle form analysis results from ESP32
+        if (data.type === 'form_analysis_result') {
+          console.log("🎯 Form analysis result received:", data);
+          
+          setFormScore(data.form_score);
+          setFormFeedback(data.feedback);
+          setFormBreakdown({
+            range_score: data.analysis?.range_score || data.range_score || 0,
+            smoothness_score: data.analysis?.smoothness_score || data.smoothness_score || 0,
+            consistency_score: data.analysis?.consistency_score || data.consistency_score || 0
+          });
+
+          // Add to history with timestamp
+          const newResult: FormAnalysisResult = {
+            form_score: data.form_score,
+            feedback: data.feedback,
+            analysis: {
+              range_score: data.analysis?.range_score || data.range_score || 0,
+              smoothness_score: data.analysis?.smoothness_score || data.smoothness_score || 0,
+              consistency_score: data.analysis?.consistency_score || data.consistency_score || 0
+            },
+            timestamp: new Date().toLocaleTimeString()
+          };
+          setFormAnalysisHistory(prev => [newResult, ...prev.slice(0, 4)]);
+          setIsFormAnalyzing(false);
+        }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
+
+    websocket.onclose = () => {
+      console.log("🔌 WebSocket disconnected");
+      setWs(null);
+    };
+
+    websocket.onerror = (error) => {
+      console.error("❌ WebSocket error:", error);
+      setWs(null);
+    };
+
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
+  }, [isConnected]);
 
   const formatDeviceId = (id: string) => {
     return id.length > 6 ? id.slice(-6) : id;
@@ -1055,7 +1061,7 @@ export default function ESP32Controller() {
             </div>
           ) : (
             <div className="text-center text-gray-400 text-sm mb-6">
-              {isFormAnalyzing ? "Analyzing your form..." : "No form analysis available yet"}
+              {isFormAnalyzing ? "Analyzing your form... Perform bicep curls now!" : "Ready to analyze your bicep curl form"}
             </div>
           )}
           
@@ -1064,29 +1070,27 @@ export default function ESP32Controller() {
             {!isFormAnalyzing ? (
               <button
                 onClick={startFormAnalysis}
-                disabled={!isConnected || !trainingStatus.accuracy}
+                disabled={!isConnected}
                 className={`w-full py-2 px-3 rounded text-sm font-medium transition-colors ${
-                  !isConnected || !trainingStatus.accuracy
+                  !isConnected
                     ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                     : "bg-purple-600 hover:bg-purple-700 text-white"
                 }`}
               >
-                Analyze Form
+                Start Form Analysis
               </button>
             ) : (
               <button
                 onClick={stopFormAnalysis}
                 className="w-full py-2 px-3 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors"
               >
-                Stop Analysis
+                Stop Analysis (15s)
               </button>
             )}
             
-            {!trainingStatus.accuracy && (
-              <div className="text-xs text-yellow-400 text-center">
-                Train a model first for form analysis
-              </div>
-            )}
+            <div className="text-xs text-gray-400 text-center">
+              Perform bicep curls for 15 seconds when analysis starts
+            </div>
             
             {/* Mini History */}
             {formAnalysisHistory.length > 0 && (
